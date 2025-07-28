@@ -5,18 +5,23 @@ Preparing the LLM to use in the agent system.
 """
 import os
 from dotenv import load_dotenv
-from langchain_together import ChatTogether
+from langchain_google_genai import ChatGoogleGenerativeAI
+
+from pathlib import Path
 
 # Load environment variables from the .env file in the project root
 # This line assumes your .env file is in the 'bio' directory
-dotenv_path = os.path.join(os.path.dirname(__file__), '../../../.env')
-load_dotenv(dotenv_path=dotenv_path)
+print("="*100)
+dotenv_path = Path(__file__).resolve().parents[0].parent.parent / '.env'
+load_dotenv(dotenv_path)
 
+
+print(f"🔍 Loading environment variables from:\n {dotenv_path}")
 def get_llm():
     """
     Initializes and returns the configured Language Model.
     
-    Currently configured to use TogetherAI.
+    Currently configured to use Google Gemini.
     
     Raises:
         ValueError: If the required API key is not found in the environment variables.
@@ -24,21 +29,23 @@ def get_llm():
     Returns:
         An instance of a LangChain ChatModel.
     """
-    api_key = os.getenv("TOGETHER_API_KEY")
-    model_name = os.getenv("TOGETHER_MODEL", "deepseek-ai/DeepSeek-R1-0528") # Default model if not set
 
+    api_key = os.getenv("GOOGLE_API_KEY")
+    model_name = os.getenv("GEMINI_MODEL", "models/gemini-2.0-flash") # Default model if not set
+    
+    
     if not api_key:
         raise ValueError(
-            "TOGETHER_API_KEY not found in environment variables. "
+            "GOOGLE_API_KEY not found in environment variables. "
             "Please ensure it is set in your .env file."
         )
 
-    # Initialize the ChatTogether model
-    llm = ChatTogether(
+    # Initialize the ChatGoogleGenerativeAI model
+    llm = ChatGoogleGenerativeAI(
         model=model_name,
-        together_api_key=api_key,
+        google_api_key=api_key,
         temperature=0.0,  # Set to 0 for deterministic, factual responses
-        max_tokens=2048
+        max_tokens=900
     )
     
     return llm
@@ -48,10 +55,10 @@ if __name__ == '__main__':
     print("Attempting to initialize the LLM...")
     try:
         llm_instance = get_llm()
-        print("✅ LLM Initialized Successfully!")
-        print(f"   - Provider: TogetherAI")
-        print(f"   - Model: {llm_instance.model}")
-        
+        print("✅ LLM Initialized Successfully! \n")
+        print(f"   - Provider: Google Gemini\n")
+        print(f"   - Model: {llm_instance.model}\n")
+
         # Test invocation
         print("\nTesting LLM with a simple prompt...")
         response = llm_instance.invoke("Hello, how are you?")
