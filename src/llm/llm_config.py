@@ -1,10 +1,7 @@
 """
 LLM Configuration
 -----------------
-This module provides a centralized function to configure and retrieve the 
-Language Model (LLM) for the entire application.
-
-It reads configuration details (API keys, model names) from the .env file.
+Preparing the LLM to use in the agent system.
 """
 import os
 from dotenv import load_dotenv
@@ -28,7 +25,7 @@ def get_llm():
         An instance of a LangChain ChatModel.
     """
     api_key = os.getenv("TOGETHER_API_KEY")
-    model_name = os.getenv("TOGETHER_MODEL", "mistralai/Mixtral-8x7B-Instruct-v0.1") # Default model if not set
+    model_name = os.getenv("TOGETHER_MODEL", "deepseek-ai/DeepSeek-R1-0528") # Default model if not set
 
     if not api_key:
         raise ValueError(

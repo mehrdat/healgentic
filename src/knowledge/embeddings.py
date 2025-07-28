@@ -6,7 +6,6 @@ import os
 from typing import List
 from dotenv import load_dotenv
 
-
 class TogetherEmbeddings:
     """Custom embedding class for Together AI"""
     
