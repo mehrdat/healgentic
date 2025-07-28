@@ -6,8 +6,16 @@ import sys
 import os
 from pathlib import Path
 
+# Disable LangSmith warnings and tracing
+os.environ["LANGCHAIN_TRACING_V2"] = "false"
+os.environ["LANGCHAIN_TRACING"] = "false"
+os.environ["LANGSMITH_TRACING"] = "false"
+
 # Add src to path for absolute imports
 sys.path.insert(0, str(Path(__file__).parent))
+
+# Import warning suppression first
+from utils.disable_warnings import suppress_warnings
 
 from knowledge.knowledge_base import MedicalKnowledgeBase
 from workflow.graph import MedicalDiagnosisWorkflow
@@ -88,11 +96,11 @@ def main():
         system = MedicalDiagnosisSystem()
         status = system.get_system_status()
         
-        print("🔍 System Status")
+        print("🔍 System Status\n")
         print("="*30)
-        print(f"Knowledge Base: {status['knowledge_base']}")
-        print(f"Workflow: {status['workflow']}")
-        
+        print(f"Knowledge Base: {status['knowledge_base']}\n")
+        print(f"Workflow: {status['workflow']}\n")
+
     else:
         print(f"Unknown command: {command}")
 

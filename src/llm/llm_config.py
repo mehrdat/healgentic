@@ -6,15 +6,17 @@ Preparing the LLM to use in the agent system.
 import os
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
-
 from pathlib import Path
 
+# Disable LangSmith warnings and tracing
+os.environ["LANGCHAIN_TRACING_V2"] = "false"
+os.environ["LANGCHAIN_TRACING"] = "false"
+os.environ["LANGSMITH_TRACING"] = "false"
+
 # Load environment variables from the .env file in the project root
-# This line assumes your .env file is in the 'bio' directory
 print("="*100)
 dotenv_path = Path(__file__).resolve().parents[0].parent.parent / '.env'
 load_dotenv(dotenv_path)
-
 
 print(f"🔍 Loading environment variables from:\n {dotenv_path}")
 def get_llm():

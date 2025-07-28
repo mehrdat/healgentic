@@ -67,7 +67,7 @@ class MedicalDiagnosisWorkflow:
         # Compile the workflow
         self.app = workflow.compile()
         
-        print("✅ Workflow setup complete")
+        print("✅ Workflow setup complete\n")
     
     def _initial_assessment_step(self, state: MedicalDiagnosisState) -> MedicalDiagnosisState:
         """Step 1: Initial assessment of user symptoms"""
@@ -76,7 +76,7 @@ class MedicalDiagnosisWorkflow:
         query = InitialQuery(text=state["user_symptoms"])
         assessment = self.initial_assessment_agent.invoke(query.dict())
         
-        state["symptom_analysis"] = assessment.dict()
+        state["symptom_analysis"] = assessment.model_dump()
         state["current_step"] = "information_gathering"
         
         return state
@@ -91,7 +91,7 @@ class MedicalDiagnosisWorkflow:
         # Search the knowledge base with each query
         retrieved_docs = []
         for query_obj in search_queries.queries:
-            docs = self.knowledge_base.similarity_search(query_obj.query, k=3)
+            docs = self.knowledge_base.search_medical_knowledge(query_obj.query, k=3)
             retrieved_docs.extend(docs)
         
         # Combine retrieved knowledge
@@ -112,7 +112,7 @@ class MedicalDiagnosisWorkflow:
             "retrieved_knowledge": state["retrieved_knowledge"]
         })
         
-        state["differential_diagnosis"] = differential.dict()
+        state["differential_diagnosis"] = differential.model_dump()
         state["current_step"] = "clarifying_questions"
         
         return state
@@ -126,11 +126,11 @@ class MedicalDiagnosisWorkflow:
             "assessment": state["symptom_analysis"]
         })
         
-        state["questions_asked"] = questions.dict()
+        state["questions_asked"] = questions.model_dump()
         state["current_step"] = "hypothesis_refinement"
         
-        # For now, simulate user answers (in a real app, this would be interactive)
-        # TODO: Make this interactive in the web interface
+        # 
+        # TODO: interactive : streamlit or gradio
         state["user_answers"] = self._simulate_user_answers(questions)
         
         return state
