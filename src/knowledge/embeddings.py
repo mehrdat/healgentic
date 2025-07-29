@@ -1,67 +1,44 @@
 """
-Custom embeddings for Together AI (simplified implementation)
+Embeddings for medical knowledge base
 """
 
 import os
+import warnings
 from typing import List
-from dotenv import load_dotenv
+from langchain_core.embeddings import Embeddings
 
-class TogetherEmbeddings:
-    """Custom embedding class for Together AI"""
-    
-    def __init__(self):
-        load_dotenv()
-        # Check if Together API key is available
-        self.api_key = os.getenv("TOGETHER_API_KEY")
-        if not self.api_key:
-            raise ValueError("TOGETHER_API_KEY not found in environment variables")
-        
-    def embed_documents(self, texts: List[str]) -> List[List[float]]:
-        """
-        Create embeddings for documents
-        
-        Note: This is a simplified implementation using hash-based embeddings.
-        In production, you would want to use a proper embedding model like:
-        - sentence-transformers
-        - OpenAI embeddings
-        - Hugging Face embeddings
-        """
-        embeddings = []
-        for text in texts:
-            # Create simple hash-based embedding (this is very basic)
-            embedding = [
-                float(hash(text[i:i+10]) % 1000) / 1000.0 
-                for i in range(0, min(len(text), 100), 10)
-            ]
-            # Pad to consistent size
-            while len(embedding) < 100:
-                embedding.append(0.0)
-            embeddings.append(embedding[:100])
-        return embeddings
-    
-    def embed_query(self, text: str) -> List[float]:
-        """Embed a single query"""
-        return self.embed_documents([text])[0]
+# Suppress warnings
+warnings.filterwarnings('ignore')
 
-
-class SentenceTransformerEmbeddings:
-    """Alternative implementation using sentence-transformers (requires installation)"""
+class SentenceTransformerEmbeddings(Embeddings):
+    """SentenceTransformer embeddings wrapper with error handling"""
     
     def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
         try:
             from sentence_transformers import SentenceTransformer
             self.model = SentenceTransformer(model_name)
+            print(f"✅ SentenceTransformer model '{model_name}' loaded")
         except ImportError:
-            raise ImportError(
-                "sentence-transformers not installed. "
-                "Install with: pip install sentence-transformers"
-            )
+            raise ImportError("sentence-transformers package is required")
+        except Exception as e:
+            raise RuntimeError(f"Failed to load SentenceTransformer model: {e}")
     
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
-        """Create embeddings using sentence-transformers"""
-        embeddings = self.model.encode(texts)
-        return embeddings.tolist()
+        """Embed a list of documents"""
+        try:
+            embeddings = self.model.encode(texts, convert_to_tensor=False)
+            return embeddings.tolist()
+        except Exception as e:
+            print(f"⚠️  SentenceTransformer embeddings error: {e}")
+            # Return dummy embeddings as fallback
+            return []
     
     def embed_query(self, text: str) -> List[float]:
         """Embed a single query"""
-        return self.embed_documents([text])[0]
+        try:
+            embedding = self.model.encode([text], convert_to_tensor=False)
+            return embedding[0].tolist()
+        except Exception as e:
+            print(f"⚠️  SentenceTransformer query embedding error: {e}")
+            # Return dummy embedding as fallback
+            return []
