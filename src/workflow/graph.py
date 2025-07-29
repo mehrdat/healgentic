@@ -1,39 +1,28 @@
-# Simple linear workflow executor stub
-class END:
-    """Marker for end of workflow sequence"""
-    pass
-
-class StateGraph:
-    """Executes added steps in sequence"""
-    def __init__(self, state_type):
-        self.steps = []
-
-    def add_node(self, name, func):
-        self.steps.append(func)
-
-    def add_edge(self, *args):
-        pass
-
-    def set_entry_point(self, _):
-        pass
-
-    def compile(self):
-        return self
-
-    def invoke(self, state):
-        for step in self.steps:
-            state = step(state)
-        return state
 
 # Imports
 from .state import MedicalDiagnosisState
-from agents.initial_assessment_agent import get_initial_assessment_agent, InitialQuery
+from agents.initial_assessment_agent import get_initial_assessment_a    @traceable(name="Step 5: Hypothesis Refinement")
+    @traceable(name="Step 5: Hypothesis Refinement")
+    def _hypothesis_refinement_step(self, state: MedicalDiagnosisState) -> MedicalDiagnosisState:
+        logger.info("Executing Step 5: Hypothesis Refinement")
+        refined = self.hypothesis_refinement_agent.invoke({
+            "differential_diagnosis": state["differential_diagnosis"],
+            "user_answers": state["user_answers"]
+        })
+        state["differential_diagnosis"] = refined.model_dump()
+        logger.info(f"Refined Diagnosis: {state['differential_diagnosis']}")
+        state["current_step"] = "final_diagnosis"
+        return statetialQuery
 from agents.information_gathering_agent import get_information_gathering_agent
 from agents.hypothesis_generation_agent import get_hypothesis_generation_agent
 from agents.clarifying_question_agent import get_clarifying_question_agent
 from agents.hypothesis_refinement_agent import get_hypothesis_refinement_agent
 from agents.final_diagnosis_agent import get_final_diagnosis_agent
 from agents.treatment_plan_agent import get_treatment_plan_agent
+from utils.logging_utils import logger
+from langgraph.graph import StateGraph, END
+from langsmith import traceable
+
 
 class MedicalDiagnosisWorkflow:
     """Linear workflow for medical diagnosis using a stub executor"""
@@ -74,52 +63,63 @@ class MedicalDiagnosisWorkflow:
         self.app = workflow.compile()
         print("✅ Workflow setup complete\n")
 
+    @traceable(name="Step 1: Initial Assessment")
     def _initial_assessment_step(self, state: MedicalDiagnosisState) -> MedicalDiagnosisState:
-        print("📝 Step 1: Initial Assessment")
+        logger.info("Executing Step 1: Initial Assessment")
         query = InitialQuery(text=state["user_symptoms"])
-        assessment = self.initial_assessment_agent.invoke(query.dict())
+        assessment = self.initial_assessment_agent.invoke(query.model_dump())
         state["symptom_analysis"] = assessment.model_dump()
+        logger.debug(f"Symptom Analysis Output: {state['symptom_analysis']}")
         state["current_step"] = "information_gathering"
         return state
 
+    @traceable(name="Step 2: Information Gathering")
     def _information_gathering_step(self, state: MedicalDiagnosisState) -> MedicalDiagnosisState:
-        print("🔍 Step 2: Information Gathering")
+        logger.info("Executing Step 2: Information Gathering")
         try:
             search_queries = self.information_gathering_agent.invoke(state["symptom_analysis"])
+            logger.info(f"Generated Search Queries: {[q.query for q in getattr(search_queries, 'queries', [])]}")
             retrieved_docs = []
             for query_obj in getattr(search_queries, 'queries', []):
                 docs = self.knowledge_base.search_medical_knowledge(query_obj.query, k=3)
                 if docs:
                     retrieved_docs.extend(docs)
+            
             state["knowledge_sources"] = [doc.metadata.get("source_book", "Unknown") for doc in retrieved_docs] if retrieved_docs else []
             state["retrieved_knowledge"] = "\n\n".join([doc.page_content for doc in retrieved_docs]) if retrieved_docs else ""
+            logger.info(f"Retrieved {len(retrieved_docs)} documents from the knowledge base.")
+            logger.debug(f"Retrieved Knowledge Snippet: {state['retrieved_knowledge'][:200]}...")
+
         except Exception as e:
-            print(f"❌ Error searching knowledge base: {type(e).__name__}: {repr(e)}")
-            import traceback
-            traceback.print_exc()
+            logger.error(f"Error searching knowledge base: {type(e).__name__}: {repr(e)}", exc_info=True)
             state["knowledge_sources"] = []
             state["retrieved_knowledge"] = ""
         state["current_step"] = "hypothesis_generation"
         return state
 
+    @traceable(name="Step 3: Hypothesis Generation")
     def _hypothesis_generation_step(self, state: MedicalDiagnosisState) -> MedicalDiagnosisState:
-        print("🧠 Step 3: Hypothesis Generation")
+        logger.info("Executing Step 3: Hypothesis Generation")
         differential = self.hypothesis_generation_agent.invoke({
             "assessment": state["symptom_analysis"],
             "retrieved_knowledge": state["retrieved_knowledge"]
         })
         state["differential_diagnosis"] = differential.model_dump()
+        logger.info(f"Generated Differential Diagnosis: {state['differential_diagnosis']}")
         state["current_step"] = "clarifying_questions"
         return state
 
+    @traceable(name="Step 4: Clarifying Questions")
     def _clarifying_questions_step(self, state: MedicalDiagnosisState) -> MedicalDiagnosisState:
-        print("❓ Step 4: Clarifying Questions")
+        logger.info("Executing Step 4: Clarifying Questions")
         questions = self.clarifying_question_agent.invoke({
             "differential_diagnosis": state["differential_diagnosis"],
             "assessment": state["symptom_analysis"]
         })
         state["questions_asked"] = questions.model_dump()
+        logger.info(f"Generated Clarifying Questions: {state['questions_asked']}")
         state["user_answers"] = self._simulate_user_answers(questions)
+        logger.info(f"Simulated User Answers: {state['user_answers']}")
         state["current_step"] = "hypothesis_refinement"
         return state
 
@@ -135,27 +135,31 @@ class MedicalDiagnosisWorkflow:
             "differential_diagnosis": state["differential_diagnosis"],
             "user_answers": state["user_answers"]
         })
-        state["differential_diagnosis"] = refined.dict()
+        state["differential_diagnosis"] = refined.model_dump()
         state["current_step"] = "final_diagnosis"
         return state
 
+    @traceable(name="Step 6: Final Diagnosis")
     def _final_diagnosis_step(self, state: MedicalDiagnosisState) -> MedicalDiagnosisState:
-        print("🎯 Step 6: Final Diagnosis")
+        logger.info("Executing Step 6: Final Diagnosis")
         final = self.final_diagnosis_agent.invoke({
             "refined_diagnosis": state["differential_diagnosis"]
         })
-        state["final_diagnosis"] = final.dict()
+        state["final_diagnosis"] = final.model_dump()
         state["confidence_score"] = final.confidence_score
+        logger.info(f"Final Diagnosis: {state['final_diagnosis']} with confidence {state['confidence_score']}")
         state["current_step"] = "treatment_plan"
         return state
 
+    @traceable(name="Step 7: Treatment Plan")
     def _treatment_plan_step(self, state: MedicalDiagnosisState) -> MedicalDiagnosisState:
-        print("💊 Step 7: Treatment Plan")
+        logger.info("Executing Step 7: Treatment Plan")
         plan = self.treatment_plan_agent.invoke({
             "final_diagnosis": state["final_diagnosis"],
             "retrieved_knowledge": state["retrieved_knowledge"]
         })
-        state["medications"] = plan.dict()
+        state["medications"] = plan.model_dump()
+        logger.info(f"Generated Treatment Plan: {state['medications']}")
         state["current_step"] = "complete"
         return state
 
