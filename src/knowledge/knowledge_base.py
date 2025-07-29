@@ -11,8 +11,8 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores import FAISS
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
-
-
+from langchain_community.document_loaders import TextLoader
+from .embeddings import SentenceTransformerEmbeddings
 
 class MedicalKnowledgeBase:
     """
@@ -48,33 +48,14 @@ class MedicalKnowledgeBase:
         Path(self.vector_store_dir).mkdir(parents=True, exist_ok=True)
     
     def _setup_embeddings(self):
-        """Setup embedding model"""
-        api_key = os.getenv("TOGETHER_API_KEY")
-        if not api_key:
-            print("⚠️  Warning: No Together AI API key found!")
-            print("Running in demo mode with limited functionality.")
-            self.embeddings = None
-            self.demo_mode = True
-            return
-        
+        """Setup embedding model using SentenceTransformerEmbeddings."""
         try:
-            # Try to use sentence-transformers for better embeddings
-            from .embeddings import SentenceTransformerEmbeddings
             self.embeddings = SentenceTransformerEmbeddings()
-            self.demo_mode = False
             print("✅ SentenceTransformer embeddings initialized")
-        except ImportError:
-            print("⚠️  sentence-transformers not available, using simple embeddings")
-            try:
-                from .embeddings import TogetherEmbeddings
-                self.embeddings = TogetherEmbeddings()
-                self.demo_mode = False
-                print("✅ Simple embeddings initialized")
-            except Exception as e:
-                print(f"⚠️  Warning: Could not initialize any embeddings: {e}")
-                print("Running in demo mode with limited functionality.")
-                self.embeddings = None
-                self.demo_mode = True
+        except Exception as e:
+            print(f"❌ Failed to initialize SentenceTransformer embeddings: {e}")
+            raise RuntimeError(f"Could not initialize SentenceTransformer embeddings: {e}")
+
     
     def _setup_text_splitter(self):
         """Setup text splitter for optimal medical context"""
@@ -87,10 +68,7 @@ class MedicalKnowledgeBase:
     
     def process_medical_textbooks(self) -> int:
         """Process all medical textbooks and create vector database"""
-        if self.demo_mode:
-            print("📚 Demo mode: Creating mock knowledge base...")
-            return 100  # Mock document count
-        
+
         print(f"Processing medical textbooks from: {self.knowledge_dir}")
         documents = []
         processed_files = 0
@@ -102,7 +80,7 @@ class MedicalKnowledgeBase:
             print(f"⚠️  No TXT files found in {self.knowledge_dir}")
             return 0
         
-        from langchain_community.document_loaders import TextLoader
+
         for file_path in textbook_files:
             try:
                 print(f"Processing: {file_path.name}")
@@ -132,7 +110,7 @@ class MedicalKnowledgeBase:
                 print(f"  ❌ Error processing {file_path.name}: {e}")
         
         # Create vector store
-        if documents and not self.demo_mode:
+        if documents:
             try:
                 print("Creating vector database...")
                 self.vector_store = FAISS.from_documents(documents, self.embeddings)
@@ -151,13 +129,15 @@ class MedicalKnowledgeBase:
     
     def load_vector_store(self) -> bool:
         """Load existing vector store"""
-        if self.demo_mode:
-            return True
-            
+
         try:
             vector_store_path = os.path.join(self.vector_store_dir, "medical_knowledge")
             if os.path.exists(vector_store_path):
-                self.vector_store = FAISS.load_local(vector_store_path, self.embeddings)
+                self.vector_store = FAISS.load_local(
+                    vector_store_path, 
+                    self.embeddings,
+                    allow_dangerous_deserialization=True
+                )
                 print("✅ Vector store loaded successfully")
                 return True
             else:
@@ -169,53 +149,24 @@ class MedicalKnowledgeBase:
     
     def search_medical_knowledge(self, query: str, k: int = 10) -> List[Document]:
         """Search medical knowledge base for relevant information"""
-        if self.demo_mode:
-            # Return mock documents for demo mode
-            mock_doc = Document(
-                page_content=f"Demo medical knowledge response for query: {query}",
-                metadata={"source_book": "demo_textbook.pdf", "book_type": "medical_textbook"}
-            )
-            return [mock_doc]
-        
-        # Load vector store if not already loaded
         if not self.vector_store:
             if not self.load_vector_store():
+                print("⚠️  Vector store could not be loaded for search.")
                 return []
         
         try:
-            # Perform similarity search
-            results = self.vector_store.similarity_search_with_score(query, k=k)
-            
-            # Handle different result formats
-            relevant_docs = []
-            for result in results:
-                if isinstance(result, tuple) and len(result) == 2:
-                    # Standard format: (document, score)
-                    doc, score = result
-                    if score < 0.8:  # Filter by relevance score (lower is better for FAISS)
-                        relevant_docs.append(doc)
-                elif hasattr(result, 'page_content'):
-                    # Document without score
-                    relevant_docs.append(result)
-                else:
-                    # Fallback: treat as document
-                    relevant_docs.append(result)
-            
-            return relevant_docs[:k]
+            # Use the simpler similarity_search, which directly returns Document objects
+            return self.vector_store.similarity_search(query, k=k)
             
         except Exception as e:
-            print(f"❌ Error searching knowledge base: {e}")
+            import traceback
+            print(f"❌ Error during similarity search: {type(e).__name__}: {e}")
+            traceback.print_exc()
             return []
     
     def get_statistics(self) -> dict:
         """Get knowledge base statistics"""
-        if self.demo_mode:
-            return {
-                "mode": "demo",
-                "total_documents": 100,
-                "textbooks": ["demo_textbook.pdf"]
-            }
-        
+
         # Count textbooks in directory
         textbook_files = list(Path(self.knowledge_dir).glob("*.txt"))
         
