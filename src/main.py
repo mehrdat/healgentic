@@ -50,7 +50,6 @@ class MedicalDiagnosisSystem:
         """Get system status"""
         return {
             "knowledge_base": self.knowledge_base.get_statistics(),
-            "workflow": self.workflow.get_workflow_status()
         }
 
 

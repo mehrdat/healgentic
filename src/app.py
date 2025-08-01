@@ -79,7 +79,7 @@ def main():
         if symptoms.strip():
             with st.spinner("Running medical diagnosis..."):
                 try:
-                    result = st.session_state.system.start_diagnosis(symptoms, patient_info)
+                    result = st.session_state.system.diagnose(symptoms, patient_info)
                     
                     # Display results
                     st.header("📋 Diagnosis Results")
