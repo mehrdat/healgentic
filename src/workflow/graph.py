@@ -1,16 +1,24 @@
 
 # Imports
 from .state import MedicalDiagnosisState
-from agents import (
-    get_initial_assessment_agent,
-    get_information_gathering_agent,
-    get_hypothesis_generation_agent,
-    get_clarifying_question_agent,
-    get_hypothesis_refinement_agent,
-    get_final_diagnosis_agent,
-    get_treatment_plan_agent,
-    InitialQuery
-)
+from agents.initial_assessment_agent import get_initial_assessment_a    @traceable(name="Step 5: Hypothesis Refinement")
+    @traceable(name="Step 5: Hypothesis Refinement")
+    def _hypothesis_refinement_step(self, state: MedicalDiagnosisState) -> MedicalDiagnosisState:
+        logger.info("Executing Step 5: Hypothesis Refinement")
+        refined = self.hypothesis_refinement_agent.invoke({
+            "differential_diagnosis": state["differential_diagnosis"],
+            "user_answers": state["user_answers"]
+        })
+        state["differential_diagnosis"] = refined.model_dump()
+        logger.info(f"Refined Diagnosis: {state['differential_diagnosis']}")
+        state["current_step"] = "final_diagnosis"
+        return statetialQuery
+from agents.information_gathering_agent import get_information_gathering_agent
+from agents.hypothesis_generation_agent import get_hypothesis_generation_agent
+from agents.clarifying_question_agent import get_clarifying_question_agent
+from agents.hypothesis_refinement_agent import get_hypothesis_refinement_agent
+from agents.final_diagnosis_agent import get_final_diagnosis_agent
+from agents.treatment_plan_agent import get_treatment_plan_agent
 from utils.logging_utils import logger
 from langgraph.graph import StateGraph, END
 from langsmith import traceable
@@ -24,7 +32,7 @@ class MedicalDiagnosisWorkflow:
         self.setup_workflow()
 
     def setup_agents(self):
-        logger.info("🤖 Initializing medical diagnosis agents...")
+        print("🤖 Initializing medical diagnosis agents...")
         self.initial_assessment_agent = get_initial_assessment_agent()
         self.information_gathering_agent = get_information_gathering_agent()
         self.hypothesis_generation_agent = get_hypothesis_generation_agent()
@@ -32,10 +40,10 @@ class MedicalDiagnosisWorkflow:
         self.hypothesis_refinement_agent = get_hypothesis_refinement_agent()
         self.final_diagnosis_agent = get_final_diagnosis_agent()
         self.treatment_plan_agent = get_treatment_plan_agent()
-        logger.info("✅ All agents initialized")
+        print("✅ All agents initialized")
 
     def setup_workflow(self):
-        logger.info("🔄 Setting up diagnosis workflow...")
+        print("🔄 Setting up diagnosis workflow...")
         workflow = StateGraph(MedicalDiagnosisState)
         workflow.add_node("initial_assessment", self._initial_assessment_step)
         workflow.add_node("information_gathering", self._information_gathering_step)
@@ -44,7 +52,6 @@ class MedicalDiagnosisWorkflow:
         workflow.add_node("hypothesis_refinement", self._hypothesis_refinement_step)
         workflow.add_node("final_diagnosis", self._final_diagnosis_step)
         workflow.add_node("treatment_plan", self._treatment_plan_step)
-        
         workflow.add_edge("initial_assessment", "information_gathering")
         workflow.add_edge("information_gathering", "hypothesis_generation")
         workflow.add_edge("hypothesis_generation", "clarifying_questions")
@@ -52,10 +59,9 @@ class MedicalDiagnosisWorkflow:
         workflow.add_edge("hypothesis_refinement", "final_diagnosis")
         workflow.add_edge("final_diagnosis", "treatment_plan")
         workflow.add_edge("treatment_plan", END)
-        
         workflow.set_entry_point("initial_assessment")
         self.app = workflow.compile()
-        logger.info("✅ Workflow setup complete\n")
+        print("✅ Workflow setup complete\n")
 
     @traceable(name="Step 1: Initial Assessment")
     def _initial_assessment_step(self, state: MedicalDiagnosisState) -> MedicalDiagnosisState:
@@ -119,19 +125,17 @@ class MedicalDiagnosisWorkflow:
 
     def _simulate_user_answers(self, questions) -> dict:
         answers = {}
-        for i, q in enumerate(getattr(questions, 'questions', [])):
+        for i, q in enumerate(questions.questions):
             answers[q.question] = f"Simulated answer {i+1}"
         return answers
 
-    @traceable(name="Step 5: Hypothesis Refinement")
     def _hypothesis_refinement_step(self, state: MedicalDiagnosisState) -> MedicalDiagnosisState:
-        logger.info("Executing Step 5: Hypothesis Refinement")
+        print("� Step 5: Hypothesis Refinement")
         refined = self.hypothesis_refinement_agent.invoke({
             "differential_diagnosis": state["differential_diagnosis"],
             "user_answers": state["user_answers"]
         })
         state["differential_diagnosis"] = refined.model_dump()
-        logger.info(f"Refined Diagnosis: {state['differential_diagnosis']}")
         state["current_step"] = "final_diagnosis"
         return state
 
@@ -159,9 +163,8 @@ class MedicalDiagnosisWorkflow:
         state["current_step"] = "complete"
         return state
 
-    @traceable(name="Medical Diagnosis Workflow")
     def run_diagnosis(self, symptoms: str, patient_info: dict = None) -> dict:
-        logger.info(f"🩺 Starting medical diagnosis for: {symptoms[:50]}...")
+        print(f"🩺 Starting medical diagnosis for: {symptoms[:50]}...")
         initial_state = MedicalDiagnosisState(
             user_symptoms=symptoms,
             patient_info=patient_info or {},
@@ -178,13 +181,12 @@ class MedicalDiagnosisWorkflow:
         )
         try:
             result = self.app.invoke(initial_state)
-            logger.info("✅ Diagnosis workflow completed")
+            print("✅ Diagnosis workflow completed")
             if result is None:
-                logger.error("Workflow returned None")
                 return {"error": "Workflow returned None", "final_diagnosis": {"primary_diagnosis": "System Error", "confidence_score": 0.0}, "confidence_score": 0.0}
             return result
         except Exception as e:
-            logger.error(f"❌ Error in diagnosis workflow: {e}", exc_info=True)
+            print(f"❌ Error in diagnosis workflow: {e}")
             return {"error": str(e), "final_diagnosis": {"primary_diagnosis": "System Error", "confidence_score": 0.0}, "confidence_score": 0.0}
 
 
