@@ -29,14 +29,12 @@ class MedicalKnowledgeBase:
         load_dotenv()
         
         # Set directories
-        self.knowledge_dir = knowledge_dir or os.getenv(
-            "MEDICAL_TEXTBOOKS_DIR", 
-            "data/medical_textbooks"
-        )
-        self.vector_store_dir = os.getenv(
-            "VECTOR_STORE_DIR", 
-            "data/vector_store"
-        )
+        current_dir = Path(__file__).parent  # src/knowledge/
+        project_root = current_dir.parent.parent  # Go up 2 levels to project root
+        
+        self.knowledge_dir = knowledge_dir or str(project_root / "data" / "medical_textbooks")
+        self.vector_store_dir = str(project_root / "data" / "vector_store")
+        
         
         # Initialize components
         self.vector_store = None
@@ -46,6 +44,8 @@ class MedicalKnowledgeBase:
         # Create directories if they don't exist
         Path(self.knowledge_dir).mkdir(parents=True, exist_ok=True)
         Path(self.vector_store_dir).mkdir(parents=True, exist_ok=True)
+        print(f"📁 Knowledge dir: {self.knowledge_dir}")
+        print(f"📁 Vector store dir: {self.vector_store_dir}")
     
     def _setup_embeddings(self):
         """Setup embedding model using SentenceTransformerEmbeddings."""

@@ -46,6 +46,14 @@ class MedicalDiagnosisSystem:
         """Run diagnosis on symptoms"""
         return self.workflow.run_diagnosis(symptoms, patient_info)
     
+    def start_interactive_diagnosis(self, symptoms: str, patient_info: dict = None):
+        """Start an interactive diagnosis session"""
+        return self.workflow.start_interactive_diagnosis(symptoms, patient_info)
+    
+    def answer_question(self, question_id: str, answer, state):
+        """Process a user answer in interactive mode"""
+        return self.workflow.answer_question(question_id, answer, state)
+    
     def get_system_status(self) -> dict:
         """Get system status"""
         return {

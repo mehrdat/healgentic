@@ -29,3 +29,5 @@ class MedicalDiagnosisState(TypedDict):
     
     # Workflow metadata
     current_step: str
+    question_count: int  # Track how many question rounds we've had
+    pending_question: Dict[str, Any]  # Current question waiting for user answer

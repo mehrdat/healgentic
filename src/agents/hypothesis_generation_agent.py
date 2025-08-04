@@ -1,7 +1,7 @@
 """
 Agent: Hypothesis Generation
 Description: Takes the initial symptoms and retrieved knowledge to create a 
-             differential diagnosis (a list of possible conditions).
+            differential diagnosis (a list of possible conditions).
 """
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field

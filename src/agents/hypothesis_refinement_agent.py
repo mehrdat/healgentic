@@ -1,7 +1,7 @@
 """
 Agent: Hypothesis Refinement
 Description: Updates the differential diagnosis based on the user's answers to 
-             the clarifying questions.
+            the clarifying questions.
 """
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
