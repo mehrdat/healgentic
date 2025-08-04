@@ -1,7 +1,7 @@
 """
 Agent: Clarifying Question Generation
 Description: Generates targeted questions for the user to help differentiate 
-             between the hypotheses in the differential diagnosis.
+            between the hypotheses in the differential diagnosis.
 """
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
