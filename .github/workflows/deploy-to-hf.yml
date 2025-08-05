@@ -1,0 +1,84 @@
+name: Deploy to Hugging Face Spaces
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'medical_diagnosis_ai/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        lfs: true
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: |
+        pip install huggingface_hub
+
+    - name: Configure Git
+      run: |
+        git config --global user.email "action@github.com"
+        git config --global user.name "GitHub Action"
+
+    - name: Deploy to Hugging Face Spaces
+      env:
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        HF_SPACE: ${{ secrets.HF_SPACE }}
+      run: |
+        # Clone the Hugging Face Space repository
+        git clone https://huggingface.co/spaces/$HF_SPACE hf_space
+        
+        # Navigate to medical_diagnosis_ai directory
+        cd medical_diagnosis_ai
+        
+        # Copy necessary files to HF space
+        cp app.py ../hf_space/
+        cp requirements.txt ../hf_space/
+        cp README.md ../hf_space/
+        
+        # Copy source code directories
+        cp -r src/ ../hf_space/
+        cp -r knowledge/ ../hf_space/ 2>/dev/null || echo "knowledge directory not found, skipping"
+        cp -r config/ ../hf_space/ 2>/dev/null || echo "config directory not found, skipping"
+        cp -r data/ ../hf_space/ 2>/dev/null || echo "data directory not found, skipping"
+        
+        # Navigate to HF space and commit changes
+        cd ../hf_space
+        
+        # Set up authentication
+        git remote set-url origin https://oauth2:$HF_TOKEN@huggingface.co/spaces/$HF_SPACE
+        
+        # Add all changes
+        git add .
+        
+        # Check if there are changes to commit
+        if git diff --staged --quiet; then
+          echo "No changes to deploy"
+        else
+          # Commit and push changes
+          git commit -m "Auto-deploy from GitHub: ${{ github.sha }}"
+          git push origin main
+          echo "Successfully deployed to Hugging Face Spaces!"
+        fi
+
+    - name: Notify deployment status
+      if: always()
+      run: |
+        if [ $? -eq 0 ]; then
+          echo "✅ Deployment to Hugging Face Spaces completed successfully!"
+          echo "🌐 Your app should be available at: https://huggingface.co/spaces/${{ secrets.HF_SPACE }}"
+        else
+          echo "❌ Deployment failed. Please check the logs above."
+        fi
