@@ -190,30 +190,66 @@ def main():
                             st.session_state.diagnosis_state = None
                             st.session_state.diagnosis_started = False  # Reset for new diagnosis
                             
-                            # Display diagnosis results
+                            # Display comprehensive diagnosis results
                             diagnosis_text = "## 🎯 Diagnosis Complete!\n\n"
                             
+                            # Primary Diagnosis
                             final_diagnosis = result.get("final_diagnosis", {})
                             if final_diagnosis:
-                                diagnosis_text += f"**Primary Diagnosis:** {final_diagnosis.get('primary_diagnosis', 'Unknown')}\n\n"
-                                diagnosis_text += f"**Confidence:** {result.get('confidence_score', 0):.1%}\n\n"
+                                diagnosis_text += f"**🏥 Primary Diagnosis:** {final_diagnosis.get('primary_diagnosis', 'Unknown')}\n\n"
+                                diagnosis_text += f"**📊 Confidence:** {result.get('confidence_score', 0):.1%}\n\n"
                                 
-                                if final_diagnosis.get('reasoning'):
-                                    diagnosis_text += f"**Reasoning:** {final_diagnosis['reasoning']}\n\n"
-                            
-                            medications = result.get("medications", {})
-                            if medications:
-                                diagnosis_text += "### 💊 Treatment Recommendations:\n"
-                                if medications.get("medications"):
-                                    diagnosis_text += "**Medications:**\n"
-                                    for med in medications["medications"]:
-                                        diagnosis_text += f"- {med}\n"
+                                if final_diagnosis.get('final_summary'):
+                                    diagnosis_text += f"**📋 Summary:** {final_diagnosis['final_summary']}\n\n"
+                                
+                                if final_diagnosis.get('next_steps'):
+                                    diagnosis_text += "**🔍 Next Steps:**\n"
+                                    for step in final_diagnosis['next_steps']:
+                                        diagnosis_text += f"• {step}\n"
                                     diagnosis_text += "\n"
+                            
+                            # Treatment Plan - FIXED DATA ACCESS
+                            medications = result.get("medications", {})
+                            print(f"🔍 Debug - medications data: {medications}")
+                            
+                            if medications:
+                                diagnosis_text += "## 💊 Treatment Recommendations:\n\n"
                                 
-                                if medications.get("lifestyle_recommendations"):
-                                    diagnosis_text += "**Lifestyle Recommendations:**\n"
-                                    for rec in medications["lifestyle_recommendations"]:
-                                        diagnosis_text += f"- {rec}\n"
+                                suggestions = medications.get("suggestions", [])
+                                print(f"🔍 Debug - suggestions: {suggestions}")
+                                
+                                if suggestions:
+                                    suggestions_by_category = {}
+                                    for suggestion in suggestions:
+                                        category = suggestion.get("category", "General")
+                                        if category not in suggestions_by_category:
+                                            suggestions_by_category[category] = []
+                                        suggestions_by_category[category].append(suggestion.get("suggestion", ""))
+                                    
+                                    category_icons = {
+                                        "Lifestyle": "🏃",
+                                        "Home Care": "🏠", 
+                                        "When to See a Doctor": "👩‍⚕️",
+                                        "Monitoring": "📊",
+                                        "General": "ℹ️"
+                                    }
+                                    
+                                    for category, category_suggestions in suggestions_by_category.items():
+                                        icon = category_icons.get(category, "•")
+                                        diagnosis_text += f"**{icon} {category}:**\n"
+                                        for suggestion in category_suggestions:
+                                            if suggestion:
+                                                diagnosis_text += f"• {suggestion}\n"
+                                        diagnosis_text += "\n"
+                                else:
+                                    diagnosis_text += "No specific treatment recommendations available.\n\n"
+                                
+                                if medications.get("important_note"):
+                                    diagnosis_text += f"**⚠️ Important Note:** {medications['important_note']}\n\n"
+                            
+                            # Disclaimer
+                            if final_diagnosis.get('disclaimer'):
+                                diagnosis_text += f"**📋 Disclaimer:** {final_diagnosis['disclaimer']}\n"
                             
                             st.session_state.messages.append({
                                 "role": "assistant",
@@ -259,12 +295,58 @@ def main():
                         st.session_state.diagnosis_state = None
                         st.session_state.diagnosis_started = False
                         
-                        # Add diagnosis results to chat
+                        # Add comprehensive diagnosis results to chat
                         diagnosis_text = "## 🎯 Diagnosis Complete!\n\n"
+                        
                         final_diagnosis = result.get("final_diagnosis", {})
                         if final_diagnosis:
-                            diagnosis_text += f"**Primary Diagnosis:** {final_diagnosis.get('primary_diagnosis', 'Unknown')}\n\n"
-                            diagnosis_text += f"**Confidence:** {result.get('confidence_score', 0):.1%}\n\n"
+                            diagnosis_text += f"**🏥 Primary Diagnosis:** {final_diagnosis.get('primary_diagnosis', 'Unknown')}\n\n"
+                            diagnosis_text += f"**📊 Confidence:** {result.get('confidence_score', 0):.1%}\n\n"
+                            
+                            if final_diagnosis.get('final_summary'):
+                                diagnosis_text += f"**📋 Summary:** {final_diagnosis['final_summary']}\n\n"
+                            
+                            if final_diagnosis.get('next_steps'):
+                                diagnosis_text += "**🔍 Next Steps:**\n"
+                                for step in final_diagnosis['next_steps']:
+                                    diagnosis_text += f"• {step}\n"
+                                diagnosis_text += "\n"
+                        
+                        # Treatment recommendations - FIXED
+                        medications = result.get("medications", {})
+                        if medications:
+                            diagnosis_text += "## 💊 Treatment Recommendations:\n\n"
+                            
+                            suggestions = medications.get("suggestions", [])
+                            if suggestions:
+                                suggestions_by_category = {}
+                                for suggestion in suggestions:
+                                    category = suggestion.get("category", "General")
+                                    if category not in suggestions_by_category:
+                                        suggestions_by_category[category] = []
+                                    suggestions_by_category[category].append(suggestion.get("suggestion", ""))
+                                
+                                category_icons = {
+                                    "Lifestyle": "🏃",
+                                    "Home Care": "🏠", 
+                                    "When to See a Doctor": "👩‍⚕️",
+                                    "Monitoring": "📊",
+                                    "General": "ℹ️"
+                                }
+                                
+                                for category, category_suggestions in suggestions_by_category.items():
+                                    icon = category_icons.get(category, "•")
+                                    diagnosis_text += f"**{icon} {category}:**\n"
+                                    for suggestion in category_suggestions:
+                                        if suggestion:
+                                            diagnosis_text += f"• {suggestion}\n"
+                                    diagnosis_text += "\n"
+                            
+                            if medications.get("important_note"):
+                                diagnosis_text += f"**⚠️ Important Note:** {medications['important_note']}\n\n"
+                        
+                        if final_diagnosis.get('disclaimer'):
+                            diagnosis_text += f"**📋 Disclaimer:** {final_diagnosis['disclaimer']}\n"
                         
                         st.session_state.messages.append({
                             "role": "assistant",
@@ -298,16 +380,54 @@ def main():
                         "content": "I've analyzed your symptoms. To provide an accurate diagnosis, I need to ask you some specific questions."
                     })
                 elif result["status"] == "diagnosis_complete":
-                    # Unlikely but handle it
+                    print("🎉 Diagnosis complete after skip!")
+                    st.session_state.current_question = None
+                    st.session_state.diagnosis_state = None
+                    st.session_state.diagnosis_started = False
+                    
+                    # Use the same comprehensive display logic
+                    diagnosis_text = "## 🎯 Diagnosis Complete!\n\n"
+                    
+                    final_diagnosis = result.get("final_diagnosis", {})
+                    if final_diagnosis:
+                        diagnosis_text += f"**🏥 Primary Diagnosis:** {final_diagnosis.get('primary_diagnosis', 'Unknown')}\n\n"
+                        diagnosis_text += f"**📊 Confidence:** {result.get('confidence_score', 0):.1%}\n\n"
+                        
+                        if final_diagnosis.get('final_summary'):
+                            diagnosis_text += f"**📋 Summary:** {final_diagnosis['final_summary']}\n\n"
+                    
+                    # Treatment recommendations
+                    medications = result.get("medications", {})
+                    if medications and medications.get("suggestions"):
+                        diagnosis_text += "## 💊 Treatment Recommendations:\n\n"
+                        
+                        suggestions_by_category = {}
+                        for suggestion in medications["suggestions"]:
+                            category = suggestion.get("category", "General")
+                            if category not in suggestions_by_category:
+                                suggestions_by_category[category] = []
+                            suggestions_by_category[category].append(suggestion["suggestion"])
+                        
+                        category_icons = {
+                            "Lifestyle": "🏃",
+                            "Home Care": "🏠", 
+                            "When to See a Doctor": "👩‍⚕️",
+                            "Monitoring": "📊",
+                            "General": "ℹ️"
+                        }
+                        
+                        for category, suggestions in suggestions_by_category.items():
+                            icon = category_icons.get(category, "•")
+                            diagnosis_text += f"**{icon} {category}:**\n"
+                            for suggestion in suggestions:
+                                diagnosis_text += f"• {suggestion}\n"
+                            diagnosis_text += "\n"
+                    
                     st.session_state.messages.append({
                         "role": "assistant",
-                        "content": "Based on your symptoms, here's my assessment..."
+                        "content": diagnosis_text
                     })
-                else:
-                    st.session_state.messages.append({
-                        "role": "assistant",
-                        "content": f"I'm sorry, I encountered an error: {result.get('error', 'Unknown error')}"
-                    })
+
             else:
                 # Continue conversation
                 st.session_state.messages.append({
