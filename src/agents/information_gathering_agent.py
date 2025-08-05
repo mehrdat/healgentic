@@ -1,7 +1,7 @@
 """
 Agent: Information Gathering
 Description: Takes a structured assessment and generates targeted search queries 
-             to retrieve relevant information from the medical knowledge base.
+            to retrieve relevant information from the medical knowledge base.
 """
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
