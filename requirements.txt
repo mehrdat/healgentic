@@ -1,29 +1,19 @@
-# LLM Providers
-langchain-google-genai==2.1.8
-together==1.2.8
-
-# Embeddings and Vector Store
-voyageai==0.2.3
-faiss-cpu==1.8.0
-sentence-transformers==3.3.1
-
-# LangChain Core
-langchain==0.3.1
-langchain-community==0.3.0
-langchain-core==0.3.6
-langchain-openai==0.2.1
-langchain-text-splitters==0.3.0
-langgraph==0.2.16
-
-# Document Processing
-pypdf==4.3.1
-unstructured[pdf]==0.16.10
-
-# Web Apps
-streamlit==1.38.0
-gradio==4.44.0
-
-# Utilities
-python-dotenv==1.0.1
-numpy==1.26.4
-pathlib2==2.3.7
+gradio>=4.0.0
+langchain>=0.1.0
+langchain-community>=0.0.1
+langchain-huggingface>=0.0.1
+huggingface_hub>=0.19.0
+transformers>=4.35.0
+torch>=2.0.0
+pandas>=1.5.0
+numpy>=1.24.0
+pydantic>=2.0.0
+sentence-transformers>=2.2.0
+faiss-cpu>=1.7.4
+chromadb>=0.4.0
+pypdf>=3.0.0
+python-docx>=0.8.11
+openpyxl>=3.1.0
+python-dotenv>=1.0.0
+pathlib2>=2.3.7
+typing-extensions>=4.0.0
