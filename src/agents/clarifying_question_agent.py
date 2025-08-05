@@ -29,7 +29,7 @@ class InteractiveClarifyingQuestion(BaseModel):
 class InteractiveClarifyingQuestions(BaseModel):
     """A list of interactive clarifying questions to ask the user."""
     questions: List[InteractiveClarifyingQuestion] = Field(
-        description="A list of 5-15 targeted questions with UI metadata to help refine the diagnosis"
+        description="A list of 3-8 targeted questions with UI metadata to help refine the diagnosis. Generate at least 5 questions in the first round."
     )
     more_needed: bool = Field(
         default=True, 
@@ -38,19 +38,22 @@ class InteractiveClarifyingQuestions(BaseModel):
 
 # --- Prompt Template ---
 
-INTERACTIVE_QUESTION_PROMPT = ChatPromptTemplate.from_messages(
-    [
-        (
-            "system",
-            """You are an expert medical diagnostician AI. Your goal is to formulate interactive clarifying questions to help differentiate between several possible medical conditions.
-            
-            You have been provided with a differential diagnosis and previous answers. Your task is to generate 3-8 specific, easy-to-understand questions for the patient that will help determine which diagnosis is the most accurate.
-            
-            Instructions:
-            1. Analyze the list of possible conditions and previous answers.
-            2. Identify the key differences in symptoms or characteristics between the top hypotheses.
-            3. Formulate questions that directly probe these differences.
-            4. For each question, specify the appropriate UI widget type:
+CLARIFYING_QUESTIONS_PROMPT = ChatPromptTemplate.from_messages([
+    ("system", """
+    You are a medical expert generating clarifying questions for diagnosis.
+    
+    CRITICAL INSTRUCTIONS:
+    - Look at previously_asked_questions and user_answers to see what has ALREADY been covered
+    - DO NOT repeat or rephrase questions that have been asked before
+    - Generate only NEW questions that explore DIFFERENT diagnostic aspects
+    - If sufficient information has been gathered (15+ total questions), set more_needed to false
+    
+    QUESTION GENERATION RULES:
+    - Generate 5-8 new questions per round (minimum 5 for first round)
+    - Focus on unexplored diagnostic areas
+    - Avoid redundant questions about severity, location, timing if already asked
+    - Consider the differential diagnosis and what specific information would help narrow it down
+    - For each question, specify the appropriate UI widget type:
                 - "slider": For severity, pain levels (0-10 scale)
                 - "select": For single choice from predefined options
                 - "multiselect": For multiple symptoms/choices
@@ -58,35 +61,55 @@ INTERACTIVE_QUESTION_PROMPT = ChatPromptTemplate.from_messages(
                 - "number": For numeric values (age, count, etc.)
                 - "text": For open-ended descriptions
                 - "date": For dates and timeframes
-            5. Provide appropriate options, min/max values for each widget.
-            6. Generate questions that build on previous answers and avoid repetition.
-            7. Focus on critical diagnostic factors: severity, duration, location, triggers, associated symptoms.
-            
-            Example question formats:
-            - Severity: "How severe is your headache?" (slider, 0-10)
-            - Location: "Where exactly is the pain located?" (select with body parts)
-            - Duration: "How long have you had these symptoms?" (select with time ranges)
-            - Associated symptoms: "Which of these symptoms do you also experience?" (multiselect)
-            - Triggers: "What makes your symptoms worse?" (multiselect)
-            
-            Generate questions that will help narrow down from the current differential diagnosis.""",
-        ),
-        (
-            "human",
-            "Here is the current differential diagnosis:\n\n---\n"
-            "{differential_diagnosis}\n"
-            "---"
-            "\nHere is the initial patient assessment:\n\n---\n"
-            "{assessment}\n"
-            "---"
-            "\nPrevious user answers (avoid asking about these again):\n\n---\n"
-            "{user_answers}\n"
-            "---"
-            "\nQuestion round: {question_count}\n\n"
-            "Generate 5-15 targeted questions with appropriate UI widgets to help refine the diagnosis.",
-        ),
-    ]
-)
+    Previously asked: {previously_asked}
+    Current question count: {question_count}
+    """),
+    ("human", """
+    Differential diagnosis: {differential_diagnosis}
+    Symptom analysis: {assessment}
+    Current user answers: {user_answers}
+    
+    Generate new, non-repetitive questions to clarify the diagnosis.
+    """)
+])
+
+# Add this to your clarifying_question_agent.py file
+
+INTERACTIVE_QUESTION_PROMPT = ChatPromptTemplate.from_messages([
+    ("system", """
+    You are a medical expert generating clarifying questions for diagnosis.
+    
+    CRITICAL INSTRUCTIONS:
+    - Look at previously_asked_questions and user_answers to see what has ALREADY been covered
+    - DO NOT repeat or rephrase questions that have been asked before
+    - Generate only NEW questions that explore DIFFERENT diagnostic aspects
+    - If sufficient information has been gathered, set more_needed to false
+    
+    QUESTION GENERATION RULES:
+    - Maximum 1-2 new questions per round
+    - Focus on unexplored diagnostic areas
+    - Avoid redundant questions about severity, location, timing if already asked
+    - Consider the differential diagnosis and what specific information would help narrow it down
+    
+    Previously asked questions (DO NOT REPEAT): {previously_asked}
+    Current question count: {question_count}
+    User answers so far: {user_answers}
+    
+    Generate NEW, non-repetitive questions with appropriate UI metadata:
+    - type: "text" (text input), "slider" (0-10 scale), "select" (dropdown), "multiselect", "number", "radio"
+    - For sliders: include min, max values
+    - For select/radio: include options list
+    - For each question: provide clear reasoning why this question helps narrow the diagnosis
+    """),
+    ("human", """
+    Differential diagnosis to investigate: {differential_diagnosis}
+    
+    Initial symptom analysis: {assessment}
+    
+    Generate clarifying questions that will help distinguish between the possible diagnoses.
+    Focus on questions that haven't been asked yet and provide the most diagnostic value.
+    """)
+])
 
 # --- Agent Definition ---
 
@@ -99,7 +122,9 @@ def get_clarifying_question_agent():
     """
     llm = get_llm()
     structured_llm = llm.with_structured_output(InteractiveClarifyingQuestions)
-    agent = INTERACTIVE_QUESTION_PROMPT | structured_llm
+    #agent = INTERACTIVE_QUESTION_PROMPT | structured_llm
+    agent = CLARIFYING_QUESTIONS_PROMPT | structured_llm
+
     return agent
 
 # --- Example Usage (for testing) ---

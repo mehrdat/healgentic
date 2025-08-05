@@ -161,9 +161,12 @@ def main():
                 if st.button("Submit Answer", type="primary"):
                     if answer is not None and str(answer).strip():
                         # Process the answer
+                        print(f"🔍 Processing answer: {answer} for question: {question_id}")
                         result = st.session_state.system.workflow.answer_question(
                             question_id, answer, st.session_state.diagnosis_state
                         )
+                        
+                        print(f"📊 Result status: {result.get('status', 'unknown')}")
                         
                         # Add answer to chat history
                         st.session_state.messages.append({
@@ -173,6 +176,7 @@ def main():
                         
                         if result["status"] == "question_pending":
                             # More questions needed
+                            print("➡️ More questions needed")
                             st.session_state.current_question = result["question"]
                             st.session_state.diagnosis_state = result["state"]
                             st.session_state.messages.append({
@@ -181,8 +185,10 @@ def main():
                             })
                         elif result["status"] == "diagnosis_complete":
                             # Diagnosis complete
+                            print("🎉 Diagnosis complete! Clearing question state...")
                             st.session_state.current_question = None
                             st.session_state.diagnosis_state = None
+                            st.session_state.diagnosis_started = False  # Reset for new diagnosis
                             
                             # Display diagnosis results
                             diagnosis_text = "## 🎯 Diagnosis Complete!\n\n"
@@ -213,7 +219,18 @@ def main():
                                 "role": "assistant",
                                 "content": diagnosis_text
                             })
+                        else:
+                            # Handle unexpected status
+                            print(f"⚠️ Unexpected result status: {result.get('status', 'unknown')}")
+                            st.session_state.messages.append({
+                                "role": "assistant",
+                                "content": f"⚠️ Unexpected result: {result.get('status', 'unknown')}. Please try again."
+                            })
+                            st.session_state.current_question = None
+                            st.session_state.diagnosis_state = None
+                            st.session_state.diagnosis_started = False
                             
+                        print("🔄 Triggering rerun...")
                         st.rerun()
                     else:
                         st.warning("Please provide an answer before submitting.")
@@ -221,9 +238,12 @@ def main():
             with col2:
                 if st.button("Skip Question"):
                     # Skip this question
+                    print(f"⏭️ Skipping question: {question_id}")
                     result = st.session_state.system.workflow.answer_question(
                         question_id, "Not provided", st.session_state.diagnosis_state
                     )
+                    
+                    print(f"📊 Skip result status: {result.get('status', 'unknown')}")
                     
                     st.session_state.messages.append({
                         "role": "user",
@@ -233,6 +253,23 @@ def main():
                     if result["status"] == "question_pending":
                         st.session_state.current_question = result["question"]
                         st.session_state.diagnosis_state = result["state"]
+                    elif result["status"] == "diagnosis_complete":
+                        print("🎉 Diagnosis complete after skip!")
+                        st.session_state.current_question = None
+                        st.session_state.diagnosis_state = None
+                        st.session_state.diagnosis_started = False
+                        
+                        # Add diagnosis results to chat
+                        diagnosis_text = "## 🎯 Diagnosis Complete!\n\n"
+                        final_diagnosis = result.get("final_diagnosis", {})
+                        if final_diagnosis:
+                            diagnosis_text += f"**Primary Diagnosis:** {final_diagnosis.get('primary_diagnosis', 'Unknown')}\n\n"
+                            diagnosis_text += f"**Confidence:** {result.get('confidence_score', 0):.1%}\n\n"
+                        
+                        st.session_state.messages.append({
+                            "role": "assistant",
+                            "content": diagnosis_text
+                        })
                     else:
                         st.session_state.current_question = None
                     

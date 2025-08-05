@@ -14,6 +14,8 @@ from agents import (
 from utils.logging_utils import logger
 from langgraph.graph import StateGraph, END
 from langsmith import traceable
+from typing import List
+
 
 
 
@@ -143,25 +145,51 @@ class MedicalDiagnosisWorkflow:
         logger.info("Executing Step 4: Clarifying Questions")
         
         # Initialize user_answers if not present
-        if not state.get("user_answers"):
-            state["user_answers"] = {}
-        if not state.get("question_count"):
-            state["question_count"] = 0
+        if "previously_asked_questions" not in state:
+            state["previously_asked_questions"] = []
+            
+        if "question_topics_covered" not in state:
+            state["question_topics_covered"] = set()
+        
+        previously_asked=[]
+        for q_data in state["previously_asked_questions"]:
+            if isinstance(q_data, dict) and "text" in q_data:
+                previously_asked.append(q_data["text"])
+                logger.info(f"Previously Asked Questions: {previously_asked}")
+                
+            
+        # if not state.get("user_answers"):
+        #     state["user_answers"] = {}
+        # if not state.get("question_count"):
+        #     state["question_count"] = 0
         
         # Generate clarifying questions with metadata for UI rendering
         questions = self.clarifying_question_agent.invoke({
             "differential_diagnosis": state["differential_diagnosis"],
             "assessment": state["symptom_analysis"],
-            "user_answers": state["user_answers"],
-            "question_count": state["question_count"]
+            "user_answers": state.get("user_answers", {}),
+            "question_count": state.get("question_count", 0),
+            "previously_asked": previously_asked
+
         })
         
-        # Store the questions with metadata for UI widgets
-        state["questions_asked"] = questions.model_dump()
-        logger.info(f"Generated Clarifying Questions: {state['questions_asked']}")
+        questions_data=questions.model_dump()
+        new_questions = questions_data.get("questions", [])
+        
+        state["previously_asked_questions"].extend(new_questions)
+        for q in new_questions:
+            topic=q.get("id","").split("_")[0]
+            state["question_topics_covered"].add(topic)
+
+        state["questions_asked"] = questions_data
+        state["question_count"]=state.get("question_count",0) +1
+        
+        
+        # state["questions_asked"] = questions.model_dump()
+        # logger.info(f"Generated Clarifying Questions: {state['questions_asked']}")
         
         # Increment question count
-        state["question_count"] += 1
+        #state["question_count"] += 1
         
         return state
 
@@ -172,45 +200,122 @@ class MedicalDiagnosisWorkflow:
         """
         logger.info("Evaluating whether to continue questioning...")
         
+        question_count = state.get("question_count", 0)
+        user_answers = state.get("user_answers", {})
+        topics_covered = state.get("question_topics_covered", set())
+        
+        # Continue if we have less than 5 questions (minimum required)
+        if question_count < 5:
+            logger.info(f"📝 Continue - minimum questions not reached ({question_count}/5)")
+            return "continue"
+        
+        # Count meaningful answers (non-empty, non-skip)
+        meaningful_answers = len([a for a in user_answers.values() if a and str(a).strip() and str(a) != "skip"])
+        
+        # Stop if we have enough comprehensive information (15+ questions or 10+ meaningful answers)
+        if question_count >= 15 or meaningful_answers >= 10:
+            logger.info(f"✅ Sufficient information collected ({question_count} questions, {meaningful_answers} answers)")
+            return "finish"
+        
+        # Check essential topics coverage
+        essential_topics = {"pain", "duration", "location", "severity", "timing", "associated", "triggers"}
+        covered_essential = len(essential_topics.intersection(topics_covered))
+        
+        # Stop if we have good coverage of essential topics and reasonable answers
+        if covered_essential >= 5 and meaningful_answers >= 7:
+            logger.info(f"✅ Essential topics covered ({covered_essential}/7) with {meaningful_answers} answers")
+            return "finish"
+        
+        # Otherwise continue asking questions
+        logger.info(f"📝 Continue - need more coverage (topics: {covered_essential}, answers: {meaningful_answers})")
+        return "continue"
         # Check if we have enough information to proceed
-        questions_data = state.get("questions_asked", {})
-        questions_list = questions_data.get("questions", [])
+        # questions_data = state.get("questions_asked", {})
+        # questions_list = questions_data.get("questions", [])
         
         # Find unanswered questions
-        unanswered_questions = []
-        for q in questions_list:
-            question_id = q.get("id", q.get("question", ""))
-            if question_id not in state.get("user_answers", {}):
-                unanswered_questions.append(q)
+        # unanswered_questions = []
+        # for q in questions_list:
+        #     question_id = q.get("id", q.get("question", ""))
+        #     if question_id not in state.get("user_answers", {}):
+        #         unanswered_questions.append(q)
         
-        # Check if we need more questions (5-25 range based on complexity)
-        total_answers = len(state.get("user_answers", {}))
-        min_questions = 5
-        max_questions = 25
+        # # Check if we need more questions (5-25 range based on complexity)
+        # total_answers = len(state.get("user_answers", {}))
+        # min_questions = 5
+        # max_questions = 25
         
         # Decision logic
-        if total_answers < min_questions:
-            logger.info(f"Need more questions: {total_answers}/{min_questions} minimum")
-            return "continue"
+        # if total_answers < min_questions:
+        #     logger.info(f"Need more questions: {total_answers}/{min_questions} minimum")
+        #     return "continue"
         
-        if total_answers >= max_questions:
-            logger.info(f"Maximum questions reached: {total_answers}/{max_questions}")
-            return "finish"
+        # if total_answers >= max_questions:
+        #     logger.info(f"Maximum questions reached: {total_answers}/{max_questions}")
+        #     return "finish"
         
-        # Check if we have unanswered questions in current batch
-        if unanswered_questions:
-            logger.info(f"Still have {len(unanswered_questions)} unanswered questions")
-            return "continue"
+        # # Check if we have unanswered questions in current batch
+        # if unanswered_questions:
+        #     logger.info(f"Still have {len(unanswered_questions)} unanswered questions")
+        #     return "continue"
         
-        # Intelligent evaluation: check if key areas are covered
-        if self._has_sufficient_diagnostic_info(state):
-            logger.info("Sufficient diagnostic information gathered")
-            return "finish"
+        # # Intelligent evaluation: check if key areas are covered
+        # if self._has_sufficient_diagnostic_info(state):
+        #     logger.info("Sufficient diagnostic information gathered")
+        #     return "finish"
         
-        # Need more questions
-        logger.info("Need additional questions for complete diagnosis")
-        return "continue"
+        # # Need more questions
+        # logger.info("Need additional questions for complete diagnosis")
+        # return "continue"
+    
+    def _deduplicate_questions(self, new_questions: List[dict], previous_questions: List[dict]) -> List[dict]:
+        """Remove duplicate questions based on text similarity"""
+        
+        if not previous_questions:
+            return new_questions
+        
+        # Extract previous question texts
+        previous_texts = set()
+        for pq in previous_questions:
+            if isinstance(pq, dict) and "text" in pq:
+                previous_texts.add(pq["text"].lower().strip())
+        
+        # Filter out duplicates and similar questions
+        filtered_questions = []
+        for q in new_questions:
+            q_text = q.get("text", "").lower().strip()
+            
+            # Check for exact match
+            if q_text in previous_texts:
+                logger.info(f"Skipping duplicate question: {q_text}")
+                continue
+            
+            # Check for high similarity
+            is_similar = any(
+                self._calculate_similarity(q_text, prev_text) > 0.8 
+                for prev_text in previous_texts
+            )
+            
+            if not is_similar:
+                filtered_questions.append(q)
+            else:
+                logger.info(f"Skipping similar question: {q_text}")
+        
+        return filtered_questions
 
+    def _calculate_similarity(self, text1: str, text2: str) -> float:
+        """Calculate simple word overlap similarity"""
+        words1 = set(text1.split())
+        words2 = set(text2.split())
+        
+        if not words1 or not words2:
+            return 0.0
+        
+        intersection = len(words1.intersection(words2))
+        union = len(words1.union(words2))
+        
+        return intersection / union if union > 0 else 0.0
+            
     def _has_sufficient_diagnostic_info(self, state: MedicalDiagnosisState) -> bool:
         """Check if we have sufficient information for diagnosis"""
         user_answers = state.get("user_answers", {})
@@ -327,12 +432,18 @@ class MedicalDiagnosisWorkflow:
     def complete_diagnosis(self, state: MedicalDiagnosisState):
         """Complete the diagnosis workflow and return final results"""
         try:
+            logger.info("🏁 Starting complete_diagnosis - running remaining workflow steps...")
+            
             # Run remaining steps
             state = self._hypothesis_refinement_step(state)
             state = self._final_diagnosis_step(state)
             state = self._treatment_plan_step(state)
             
-            return {
+            logger.info("✅ All workflow steps completed successfully")
+            logger.info(f"📊 Final diagnosis: {state.get('final_diagnosis', {}).get('primary_diagnosis', 'Unknown')}")
+            logger.info(f"🎯 Confidence score: {state.get('confidence_score', 0.0)}")
+            
+            result = {
                 "status": "diagnosis_complete",
                 "final_diagnosis": state.get("final_diagnosis", {}),
                 "medications": state.get("medications", {}),
@@ -340,6 +451,9 @@ class MedicalDiagnosisWorkflow:
                 "knowledge_sources": state.get("knowledge_sources", []),
                 "state": state
             }
+            
+            logger.info("🎉 Returning diagnosis_complete status to UI")
+            return result
             
         except Exception as e:
             logger.error(f"❌ Error completing diagnosis: {e}", exc_info=True)
