@@ -1,0 +1,35 @@
+2025-08-04 05:13:12,409 - MedicalDiagnosisAgentSystem - INFO - 🤖 Initializing medical diagnosis agents...
+2025-08-04 05:13:12,481 - MedicalDiagnosisAgentSystem - INFO - ✅ All agents initialized
+2025-08-04 05:13:12,481 - MedicalDiagnosisAgentSystem - INFO - 🔄 Setting up diagnosis workflow...
+2025-08-04 05:13:12,493 - MedicalDiagnosisAgentSystem - INFO - ✅ Workflow setup complete
+
+2025-08-04 05:13:33,438 - MedicalDiagnosisAgentSystem - INFO - 🩺 Starting interactive medical diagnosis for: why magnesium gives me anxiety...
+2025-08-04 05:13:33,438 - MedicalDiagnosisAgentSystem - INFO - Executing Step 1: Initial Assessment
+2025-08-04 05:13:34,800 - MedicalDiagnosisAgentSystem - INFO - Executing Step 2: Information Gathering
+2025-08-04 05:13:36,027 - MedicalDiagnosisAgentSystem - INFO - Generated Search Queries: ['anxiety symptoms and magnesium deficiency', 'magnesium deficiency and anxiety disorders', 'anxiety relief with magnesium supplementation', 'relationship between low magnesium and anxiety']
+2025-08-04 05:13:36,027 - MedicalDiagnosisAgentSystem - INFO - Retrieved 0 documents from the knowledge base.
+2025-08-04 05:13:36,028 - MedicalDiagnosisAgentSystem - INFO - Executing Step 3: Hypothesis Generation
+2025-08-04 05:13:37,463 - MedicalDiagnosisAgentSystem - INFO - Generated Differential Diagnosis: {'hypotheses': [{'condition': 'Anxiety related to magnesium deficiency/excess', 'probability': 0.6, 'reasoning': 'The patient is experiencing anxiety and the user mentions a possible relation to magnesium. While the information is vague, magnesium imbalance can sometimes manifest as anxiety.'}, {'condition': 'Generalized Anxiety Disorder', 'probability': 0.4, 'reasoning': 'The patient is experiencing anxiety, which is the primary symptom of Generalized Anxiety Disorder. In the absence of more specific information, GAD remains a possibility.'}]}
+2025-08-04 05:13:37,463 - MedicalDiagnosisAgentSystem - INFO - Executing Step 4: Clarifying Questions
+2025-08-04 05:13:41,344 - MedicalDiagnosisAgentSystem - INFO - Generated Clarifying Questions: {'questions': [{'id': 'anxiety_duration', 'text': 'How long have you been experiencing anxiety?', 'type': 'select', 'reasoning': 'To understand the chronicity of the anxiety, which is important for differentiating between acute anxiety related to magnesium and GAD.', 'options': ['Less than a week', '1-4 weeks', '1-6 months', 'More than 6 months'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'magnesium_intake', 'text': 'Have you recently started taking magnesium supplements or changed your magnesium intake?', 'type': 'radio', 'reasoning': 'To determine if the anxiety is related to magnesium intake.', 'options': ['Yes', 'No'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'magnesium_type', 'text': 'If yes, what type of magnesium are you taking?', 'type': 'text', 'reasoning': 'To determine if the anxiety is related to magnesium intake.', 'options': None, 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'anxiety_severity', 'text': 'On a scale of 0 to 10, how severe is your anxiety right now? (0 being no anxiety, 10 being the worst anxiety you can imagine)', 'type': 'slider', 'reasoning': 'To gauge the intensity of the anxiety.', 'options': None, 'min': 0, 'max': 10, 'default': None, 'required': True}, {'id': 'anxiety_triggers', 'text': 'Are there any specific situations or triggers that seem to bring on your anxiety?', 'type': 'text', 'reasoning': 'To identify potential triggers for the anxiety.', 'options': None, 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'other_symptoms', 'text': 'Are you experiencing any other symptoms such as muscle weakness, fatigue, nausea, or diarrhea?', 'type': 'multiselect', 'reasoning': 'To identify other symptoms that may be present.', 'options': ['Muscle weakness', 'Fatigue', 'Nausea', 'Diarrhea', 'None'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'past_anxiety', 'text': 'Have you experienced anxiety symptoms in the past?', 'type': 'radio', 'reasoning': 'To determine if the patient has a history of anxiety.', 'options': ['Yes', 'No'], 'min': None, 'max': None, 'default': None, 'required': True}], 'more_needed': True}
+2025-08-04 05:13:58,734 - MedicalDiagnosisAgentSystem - INFO - Added user answer for anxiety_duration: More than 6 months
+2025-08-04 05:13:58,735 - MedicalDiagnosisAgentSystem - ERROR - ❌ Error processing answer: 'MedicalDiagnosisWorkflow' object has no attribute '_question_routing_step'
+Traceback (most recent call last):
+  File "/Users/Mehr/Desktop/Python/excercise/25/july/bio/medical_diagnosis_ai/src/workflow/graph.py", line 305, in answer_question
+    state = self._question_routing_step(state)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MedicalDiagnosisWorkflow' object has no attribute '_question_routing_step'
+2025-08-04 05:14:13,576 - MedicalDiagnosisAgentSystem - INFO - Added user answer for anxiety_duration: More than 6 months
+2025-08-04 05:14:13,577 - MedicalDiagnosisAgentSystem - ERROR - ❌ Error processing answer: 'MedicalDiagnosisWorkflow' object has no attribute '_question_routing_step'
+Traceback (most recent call last):
+  File "/Users/Mehr/Desktop/Python/excercise/25/july/bio/medical_diagnosis_ai/src/workflow/graph.py", line 305, in answer_question
+    state = self._question_routing_step(state)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MedicalDiagnosisWorkflow' object has no attribute '_question_routing_step'
+2025-08-04 05:14:41,028 - MedicalDiagnosisAgentSystem - INFO - Added user answer for anxiety_duration: More than 6 months
+2025-08-04 05:14:41,028 - MedicalDiagnosisAgentSystem - ERROR - ❌ Error processing answer: 'MedicalDiagnosisWorkflow' object has no attribute '_question_routing_step'
+Traceback (most recent call last):
+  File "/Users/Mehr/Desktop/Python/excercise/25/july/bio/medical_diagnosis_ai/src/workflow/graph.py", line 305, in answer_question
+    state = self._question_routing_step(state)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'MedicalDiagnosisWorkflow' object has no attribute '_question_routing_step'

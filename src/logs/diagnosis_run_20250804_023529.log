@@ -1,0 +1,207 @@
+2025-08-04 02:36:01,951 - MedicalDiagnosisAgentSystem - INFO - 🤖 Initializing medical diagnosis agents...
+2025-08-04 02:36:02,043 - MedicalDiagnosisAgentSystem - INFO - ✅ All agents initialized
+2025-08-04 02:36:02,043 - MedicalDiagnosisAgentSystem - INFO - 🔄 Setting up diagnosis workflow...
+2025-08-04 02:36:02,056 - MedicalDiagnosisAgentSystem - INFO - ✅ Workflow setup complete
+
+2025-08-04 02:41:38,548 - MedicalDiagnosisAgentSystem - INFO - 🩺 Starting medical diagnosis for: what are the symptoms of magnesium...
+2025-08-04 02:41:38,553 - MedicalDiagnosisAgentSystem - INFO - Executing Step 1: Initial Assessment
+2025-08-04 02:41:39,545 - MedicalDiagnosisAgentSystem - INFO - Executing Step 2: Information Gathering
+2025-08-04 02:41:40,496 - MedicalDiagnosisAgentSystem - INFO - Generated Search Queries: ['symptoms of magnesium deficiency', 'low magnesium symptoms', 'magnesium deficiency diagnosis', 'magnesium deficiency causes']
+2025-08-04 02:41:40,496 - MedicalDiagnosisAgentSystem - INFO - Retrieved 0 documents from the knowledge base.
+2025-08-04 02:41:40,497 - MedicalDiagnosisAgentSystem - INFO - Executing Step 3: Hypothesis Generation
+2025-08-04 02:41:42,750 - MedicalDiagnosisAgentSystem - INFO - Generated Differential Diagnosis: {'hypotheses': [{'condition': 'Magnesium deficiency', 'probability': 0.5, 'reasoning': 'The patient is asking about symptoms of magnesium, which directly points to a concern about magnesium deficiency. Without more information, it is difficult to assess the likelihood, but the directness of the query suggests it should be considered.'}, {'condition': 'Dietary concerns', 'probability': 0.3, 'reasoning': "The patient's question about magnesium symptoms could stem from a broader concern about their diet and nutrient intake. They may be exploring whether their symptoms align with those of a magnesium deficiency due to dietary factors."}, {'condition': 'Medication side effects', 'probability': 0.2, 'reasoning': "The patient's symptoms might be related to side effects of medications that affect magnesium levels in the body. Certain medications can interfere with magnesium absorption or increase its excretion, leading to symptoms that the patient is trying to understand."}]}
+2025-08-04 02:41:42,751 - MedicalDiagnosisAgentSystem - INFO - Executing Step 4: Clarifying Questions
+2025-08-04 02:41:45,752 - MedicalDiagnosisAgentSystem - INFO - Generated Clarifying Questions: {'questions': [{'id': 'magnesium_symptoms', 'text': 'Which symptoms are you experiencing that made you think of magnesium deficiency? Please select all that apply.', 'type': 'multiselect', 'reasoning': 'To understand the specific symptoms experienced.', 'options': ['Muscle cramps or spasms', 'Fatigue', 'Weakness', 'Irregular heartbeat', 'Numbness or tingling', 'Headaches', 'Other'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'dietary_intake', 'text': 'How would you describe your intake of magnesium-rich foods like leafy greens, nuts, and whole grains?', 'type': 'select', 'reasoning': 'To assess dietary habits related to magnesium intake.', 'options': ['Very low', 'Low', 'Moderate', 'High', 'Very high'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'medications', 'text': 'Are you currently taking any medications, including over-the-counter drugs or supplements?', 'type': 'radio', 'reasoning': 'To identify potential medication-related causes.', 'options': ['Yes', 'No'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'other_conditions', 'text': 'Do you have any other known medical conditions?', 'type': 'radio', 'reasoning': 'To explore other potential underlying health conditions.', 'options': ['Yes', 'No'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'symptom_severity', 'text': 'On a scale of 0 to 10, how would you rate the overall severity of your symptoms?', 'type': 'slider', 'reasoning': 'To gauge the impact of the symptoms.', 'options': None, 'min': 0, 'max': 10, 'default': None, 'required': True}], 'more_needed': True}
+2025-08-04 02:41:45,752 - MedicalDiagnosisAgentSystem - INFO - Evaluating whether to continue questioning...
+2025-08-04 02:41:45,753 - MedicalDiagnosisAgentSystem - INFO - Need more questions: 0/5 minimum
+2025-08-04 02:41:45,753 - MedicalDiagnosisAgentSystem - INFO - Executing Step 4: Clarifying Questions
+2025-08-04 02:41:49,281 - MedicalDiagnosisAgentSystem - INFO - Generated Clarifying Questions: {'questions': [{'id': 'magnesium_symptoms', 'text': 'Which symptoms are you experiencing that make you think you might have a magnesium deficiency? Please select all that apply.', 'type': 'multiselect', 'reasoning': "To differentiate magnesium deficiency from other conditions, it's important to know the specific symptoms experienced.", 'options': ['Muscle cramps or spasms', 'Fatigue', 'Weakness', 'Irregular heartbeat', 'Numbness or tingling', 'Headaches', 'Other (please specify)'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'symptom_severity', 'text': 'On a scale of 0 to 10, with 0 being no symptoms and 10 being the worst imaginable, how severe are your symptoms overall?', 'type': 'slider', 'reasoning': 'The severity of symptoms can help determine the likelihood of a magnesium deficiency.', 'options': None, 'min': 0, 'max': 10, 'default': None, 'required': True}, {'id': 'dietary_habits', 'text': 'How often do you consume magnesium-rich foods like leafy green vegetables, nuts, seeds, and whole grains?', 'type': 'select', 'reasoning': 'Dietary intake of magnesium-rich foods is crucial to assess dietary concerns.', 'options': ['Daily', 'A few times a week', 'Rarely', 'Never'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'medications', 'text': 'Are you currently taking any medications, including over-the-counter drugs and supplements?', 'type': 'radio', 'reasoning': 'Certain medications can affect magnesium levels.', 'options': ['Yes', 'No'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'medication_list', 'text': 'If yes, please list the names of the medications you are taking.', 'type': 'text', 'reasoning': 'If the patient is taking medications, knowing which ones is important to assess potential side effects.', 'options': None, 'min': None, 'max': None, 'default': None, 'required': False}, {'id': 'other_conditions', 'text': 'Do you have any other medical conditions?', 'type': 'radio', 'reasoning': 'Certain medical conditions can affect magnesium levels.', 'options': ['Yes', 'No'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'condition_list', 'text': 'If yes, please list the conditions.', 'type': 'text', 'reasoning': 'If the patient has other medical conditions, knowing which ones is important to assess potential interactions.', 'options': None, 'min': None, 'max': None, 'default': None, 'required': False}], 'more_needed': True}
+2025-08-04 02:41:49,281 - MedicalDiagnosisAgentSystem - INFO - Evaluating whether to continue questioning...
+2025-08-04 02:41:49,282 - MedicalDiagnosisAgentSystem - INFO - Need more questions: 0/5 minimum
+2025-08-04 02:41:49,282 - MedicalDiagnosisAgentSystem - INFO - Executing Step 4: Clarifying Questions
+2025-08-04 02:41:52,063 - MedicalDiagnosisAgentSystem - INFO - Generated Clarifying Questions: {'questions': [{'id': 'magnesium_symptoms', 'text': 'Which of the following symptoms are you experiencing? (Select all that apply)', 'type': 'multiselect', 'reasoning': 'To understand which symptoms related to magnesium deficiency are present.', 'options': ['Muscle cramps or spasms', 'Fatigue', 'Weakness', 'Irregular heartbeat', 'Numbness or tingling', 'Headaches', 'Nausea or vomiting', 'Loss of appetite', 'Other'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'dietary_intake', 'text': 'How would you describe your intake of magnesium-rich foods (e.g., leafy greens, nuts, seeds, whole grains)?', 'type': 'select', 'reasoning': 'To assess dietary magnesium intake.', 'options': ['Very low', 'Low', 'Moderate', 'High', 'Very high'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'medications', 'text': 'Are you currently taking any medications or supplements? If yes, please list them.', 'type': 'text', 'reasoning': 'To identify medications that might affect magnesium levels.', 'options': None, 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'other_conditions', 'text': 'Do you have any other medical conditions or diagnoses?', 'type': 'text', 'reasoning': 'To explore other potential medical conditions.', 'options': None, 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'symptom_severity', 'text': 'On a scale of 0 to 10, how would you rate the overall severity of your symptoms?', 'type': 'slider', 'reasoning': 'To gauge the severity of the symptoms.', 'options': None, 'min': 0, 'max': 10, 'default': None, 'required': True}], 'more_needed': True}
+2025-08-04 02:41:52,064 - MedicalDiagnosisAgentSystem - INFO - Evaluating whether to continue questioning...
+2025-08-04 02:41:52,064 - MedicalDiagnosisAgentSystem - INFO - Need more questions: 0/5 minimum
+2025-08-04 02:41:52,065 - MedicalDiagnosisAgentSystem - INFO - Executing Step 4: Clarifying Questions
+2025-08-04 02:41:54,861 - MedicalDiagnosisAgentSystem - INFO - Generated Clarifying Questions: {'questions': [{'id': 'magnesium_supplements', 'text': 'Are you currently taking any magnesium supplements?', 'type': 'radio', 'reasoning': 'To determine if the patient is already taking magnesium supplements, which could influence their symptoms.', 'options': ['Yes', 'No'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'dietary_habits', 'text': 'How would you describe your diet in terms of magnesium-rich foods (e.g., leafy greens, nuts, seeds)?', 'type': 'select', 'reasoning': "To understand the patient's dietary intake of magnesium-rich foods.", 'options': ['Very low', 'Low', 'Moderate', 'High', 'Very high'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'medications', 'text': 'Are you currently taking any medications? If so, please list them.', 'type': 'text', 'reasoning': 'To identify any medications that could be affecting magnesium levels.', 'options': None, 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'specific_symptoms', 'text': 'Which specific symptoms are you experiencing that made you think of magnesium deficiency?', 'type': 'multiselect', 'reasoning': 'To pinpoint the specific symptoms the patient is experiencing that are concerning them.', 'options': ['Muscle cramps', 'Fatigue', 'Headaches', 'Irregular heartbeat', 'Numbness/tingling', 'Other'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'other_symptoms', 'text': 'Are you experiencing any other symptoms not listed above?', 'type': 'text', 'reasoning': 'To explore other symptoms that might be related or point to a different underlying cause.', 'options': None, 'min': None, 'max': None, 'default': None, 'required': True}], 'more_needed': True}
+2025-08-04 02:41:54,861 - MedicalDiagnosisAgentSystem - INFO - Evaluating whether to continue questioning...
+2025-08-04 02:41:54,862 - MedicalDiagnosisAgentSystem - INFO - Need more questions: 0/5 minimum
+2025-08-04 02:41:54,862 - MedicalDiagnosisAgentSystem - INFO - Executing Step 4: Clarifying Questions
+2025-08-04 02:41:57,785 - MedicalDiagnosisAgentSystem - INFO - Generated Clarifying Questions: {'questions': [{'id': 'magnesium_supplements', 'text': 'Are you currently taking any magnesium supplements?', 'type': 'radio', 'reasoning': 'To assess if the patient is already addressing potential magnesium deficiency.', 'options': ['Yes', 'No'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'dietary_habits', 'text': 'How would you describe your diet in terms of magnesium-rich foods like leafy greens, nuts, and whole grains?', 'type': 'select', 'reasoning': "To understand the patient's dietary intake of magnesium-rich foods.", 'options': ['Very low', 'Low', 'Moderate', 'High', 'Very high'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'symptom_muscle_cramps', 'text': 'Do you experience muscle cramps or spasms?', 'type': 'radio', 'reasoning': 'Muscle cramps are a common symptom of magnesium deficiency.', 'options': ['Yes', 'No'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'symptom_fatigue', 'text': 'How would you rate your level of fatigue?', 'type': 'slider', 'reasoning': 'Fatigue is another common symptom of magnesium deficiency.', 'options': None, 'min': 0, 'max': 10, 'default': None, 'required': True}, {'id': 'medications', 'text': 'Are you currently taking any medications, and if so, what are they?', 'type': 'text', 'reasoning': 'Certain medications can affect magnesium levels.', 'options': None, 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'other_conditions', 'text': 'Do you have any other medical conditions, such as diabetes or kidney problems?', 'type': 'radio', 'reasoning': 'Certain medical conditions can affect magnesium levels.', 'options': ['Yes', 'No'], 'min': None, 'max': None, 'default': None, 'required': True}], 'more_needed': True}
+2025-08-04 02:41:57,785 - MedicalDiagnosisAgentSystem - INFO - Evaluating whether to continue questioning...
+2025-08-04 02:41:57,785 - MedicalDiagnosisAgentSystem - INFO - Need more questions: 0/5 minimum
+2025-08-04 02:41:57,786 - MedicalDiagnosisAgentSystem - INFO - Executing Step 4: Clarifying Questions
+2025-08-04 02:42:00,646 - MedicalDiagnosisAgentSystem - INFO - Generated Clarifying Questions: {'questions': [{'id': 'magnesium_supplements', 'text': 'Are you currently taking any magnesium supplements?', 'type': 'radio', 'reasoning': 'To determine if the patient is already taking magnesium supplements, which could influence their symptoms.', 'options': ['Yes', 'No'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'dietary_intake', 'text': 'How would you describe your intake of foods rich in magnesium, such as leafy green vegetables, nuts, seeds, and whole grains?', 'type': 'select', 'reasoning': "To assess the patient's typical dietary intake of magnesium-rich foods.", 'options': ['Very low', 'Low', 'Moderate', 'High', 'Very high'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'other_medications', 'text': 'Are you currently taking any other medications or supplements regularly?', 'type': 'radio', 'reasoning': 'To identify potential medications that could be affecting magnesium levels.', 'options': ['Yes', 'No'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'specific_symptoms', 'text': 'Which specific symptoms are you experiencing that made you think about magnesium deficiency?', 'type': 'multiselect', 'reasoning': 'To understand the specific symptoms the patient is experiencing that made them inquire about magnesium deficiency.', 'options': ['Muscle cramps or spasms', 'Fatigue', 'Weakness', 'Irregular heartbeat', 'Numbness or tingling', 'Headaches', 'Other'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'symptom_severity', 'text': 'On a scale of 0 to 10, where 0 is no symptoms and 10 is the worst imaginable, how severe are your symptoms overall?', 'type': 'slider', 'reasoning': 'To gauge the severity of the symptoms.', 'options': None, 'min': 0, 'max': 10, 'default': None, 'required': True}], 'more_needed': True}
+2025-08-04 02:42:00,647 - MedicalDiagnosisAgentSystem - INFO - Evaluating whether to continue questioning...
+2025-08-04 02:42:00,647 - MedicalDiagnosisAgentSystem - INFO - Need more questions: 0/5 minimum
+2025-08-04 02:42:00,648 - MedicalDiagnosisAgentSystem - INFO - Executing Step 4: Clarifying Questions
+2025-08-04 02:42:03,138 - MedicalDiagnosisAgentSystem - INFO - Generated Clarifying Questions: {'questions': [{'id': 'magnesium_supplements', 'text': 'Are you currently taking any magnesium supplements?', 'type': 'radio', 'reasoning': 'To determine if the patient is already taking magnesium supplements, which could influence their symptoms.', 'options': ['Yes', 'No'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'specific_symptoms', 'text': 'Could you describe the specific symptoms you are experiencing?', 'type': 'text', 'reasoning': 'To understand the specific symptoms the patient is experiencing that they attribute to magnesium deficiency.', 'options': None, 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'dietary_habits', 'text': 'How would you describe your diet? (e.g., balanced, restrictive, high in processed foods)', 'type': 'text', 'reasoning': "To assess the patient's dietary intake of magnesium-rich foods.", 'options': None, 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'medications', 'text': 'Are you currently taking any medications, including over-the-counter drugs and herbal supplements?', 'type': 'radio', 'reasoning': 'To identify any medications that could be affecting magnesium levels.', 'options': ['Yes', 'No'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'list_medications', 'text': 'Please list the medications you are currently taking.', 'type': 'text', 'reasoning': "If the patient is taking medications, it's important to know which ones.", 'options': None, 'min': None, 'max': None, 'default': None, 'required': False}], 'more_needed': True}
+2025-08-04 02:42:03,139 - MedicalDiagnosisAgentSystem - INFO - Evaluating whether to continue questioning...
+2025-08-04 02:42:03,139 - MedicalDiagnosisAgentSystem - INFO - Need more questions: 0/5 minimum
+2025-08-04 02:42:03,140 - MedicalDiagnosisAgentSystem - INFO - Executing Step 4: Clarifying Questions
+2025-08-04 02:42:06,280 - MedicalDiagnosisAgentSystem - INFO - Generated Clarifying Questions: {'questions': [{'id': 'magnesium_supplements', 'text': 'Are you currently taking any magnesium supplements?', 'type': 'radio', 'reasoning': 'To determine if the patient is already taking magnesium supplements, which could influence their symptoms.', 'options': ['Yes', 'No'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'dietary_habits', 'text': 'How would you describe your diet in terms of magnesium-rich foods (e.g., leafy greens, nuts, seeds)?', 'type': 'select', 'reasoning': "To understand the patient's dietary intake of magnesium-rich foods.", 'options': ['Very low', 'Low', 'Moderate', 'High', 'Very high'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'other_medications', 'text': 'Are you taking any other medications, including over-the-counter drugs or herbal supplements?', 'type': 'radio', 'reasoning': 'To identify potential medications that could be affecting magnesium levels.', 'options': ['Yes', 'No'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'specific_symptoms', 'text': 'Which specific symptoms are you experiencing that made you think of magnesium deficiency?', 'type': 'multiselect', 'reasoning': 'To pinpoint the specific symptoms the patient is experiencing that are concerning them.', 'options': ['Muscle cramps', 'Fatigue', 'Headaches', 'Irregular heartbeat', 'Numbness/tingling', 'Other'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'symptom_severity', 'text': 'On a scale of 0 to 10, how would you rate the overall severity of your symptoms?', 'type': 'slider', 'reasoning': "To gauge the severity of the patient's symptoms.", 'options': None, 'min': 0, 'max': 10, 'default': None, 'required': True}], 'more_needed': True}
+2025-08-04 02:42:06,280 - MedicalDiagnosisAgentSystem - INFO - Evaluating whether to continue questioning...
+2025-08-04 02:42:06,280 - MedicalDiagnosisAgentSystem - INFO - Need more questions: 0/5 minimum
+2025-08-04 02:42:06,281 - MedicalDiagnosisAgentSystem - INFO - Executing Step 4: Clarifying Questions
+2025-08-04 02:42:09,453 - MedicalDiagnosisAgentSystem - INFO - Generated Clarifying Questions: {'questions': [{'id': 'magnesium_supplements', 'text': 'Are you currently taking any magnesium supplements?', 'type': 'radio', 'reasoning': 'To determine if the patient is already taking magnesium supplements, which could influence their symptoms.', 'options': ['Yes', 'No'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'dietary_intake', 'text': 'How often do you consume magnesium-rich foods like leafy greens, nuts, seeds, and whole grains?', 'type': 'select', 'reasoning': "To assess the patient's typical dietary intake of magnesium-rich foods.", 'options': ['Daily', 'A few times a week', 'Rarely', 'Never'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'muscle_symptoms', 'text': 'Are you experiencing any muscle cramps, twitches, or spasms?', 'type': 'radio', 'reasoning': 'Muscle cramps and twitches are common symptoms of magnesium deficiency.', 'options': ['Yes', 'No'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'fatigue_level', 'text': 'How would you rate your level of fatigue on a scale of 0 to 10, where 0 is no fatigue and 10 is the worst fatigue you can imagine?', 'type': 'slider', 'reasoning': 'Fatigue is another common symptom of magnesium deficiency. Assessing the severity can help differentiate from other causes.', 'options': None, 'min': 0, 'max': 10, 'default': None, 'required': True}, {'id': 'medications', 'text': 'Are you currently taking any medications, including over-the-counter drugs and supplements (other than magnesium)?', 'type': 'radio', 'reasoning': 'Certain medications can affect magnesium levels.', 'options': ['Yes', 'No'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'list_medications', 'text': 'Please list the medications you are currently taking.', 'type': 'text', 'reasoning': "If the patient is taking medications, it's important to know which ones.", 'options': None, 'min': None, 'max': None, 'default': None, 'required': False}], 'more_needed': True}
+2025-08-04 02:42:09,454 - MedicalDiagnosisAgentSystem - INFO - Evaluating whether to continue questioning...
+2025-08-04 02:42:09,454 - MedicalDiagnosisAgentSystem - INFO - Need more questions: 0/5 minimum
+2025-08-04 02:42:09,454 - MedicalDiagnosisAgentSystem - INFO - Executing Step 4: Clarifying Questions
+2025-08-04 02:42:12,244 - MedicalDiagnosisAgentSystem - INFO - Generated Clarifying Questions: {'questions': [{'id': 'magnesium_supplements', 'text': 'Are you currently taking any magnesium supplements?', 'type': 'radio', 'reasoning': 'To determine if the patient is already taking magnesium supplements, which could influence their symptoms.', 'options': ['Yes', 'No'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'dietary_intake', 'text': 'How would you describe your intake of foods rich in magnesium (e.g., leafy greens, nuts, seeds, whole grains)?', 'type': 'select', 'reasoning': "To assess the patient's dietary intake of magnesium-rich foods.", 'options': ['Very low', 'Low', 'Moderate', 'High', 'Very high'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'other_medications', 'text': 'Are you currently taking any other medications or supplements regularly?', 'type': 'radio', 'reasoning': 'To identify potential medications that could be affecting magnesium levels.', 'options': ['Yes', 'No'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'specific_symptoms', 'text': 'Could you describe the specific symptoms you are experiencing?', 'type': 'text', 'reasoning': 'To understand the specific symptoms the patient is experiencing that they attribute to magnesium deficiency.', 'options': None, 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'symptom_severity', 'text': 'On a scale of 0 to 10, with 0 being no symptoms and 10 being the worst imaginable, how severe are your symptoms overall?', 'type': 'slider', 'reasoning': "To gauge the severity of the patient's symptoms.", 'options': None, 'min': 0, 'max': 10, 'default': None, 'required': True}], 'more_needed': True}
+2025-08-04 02:42:12,244 - MedicalDiagnosisAgentSystem - INFO - Evaluating whether to continue questioning...
+2025-08-04 02:42:12,245 - MedicalDiagnosisAgentSystem - INFO - Need more questions: 0/5 minimum
+2025-08-04 02:42:12,245 - MedicalDiagnosisAgentSystem - INFO - Executing Step 4: Clarifying Questions
+2025-08-04 02:42:15,392 - MedicalDiagnosisAgentSystem - INFO - Generated Clarifying Questions: {'questions': [{'id': 'magnesium_symptoms', 'text': 'Which symptoms are you experiencing that made you think of magnesium deficiency? Please select all that apply.', 'type': 'multiselect', 'reasoning': 'To understand the specific symptoms experienced.', 'options': ['Muscle cramps or spasms', 'Fatigue', 'Weakness', 'Irregular heartbeat', 'Numbness or tingling', 'Headaches', 'Other'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'dietary_intake', 'text': 'How would you describe your intake of magnesium-rich foods like leafy greens, nuts, and whole grains?', 'type': 'select', 'reasoning': 'To assess dietary magnesium intake.', 'options': ['Very low', 'Low', 'Moderate', 'High', 'Very high'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'medications', 'text': 'Are you currently taking any medications, including over-the-counter drugs and supplements?', 'type': 'radio', 'reasoning': 'To identify medications that might affect magnesium levels.', 'options': ['Yes', 'No'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'medication_names', 'text': 'If yes, please list the names of the medications and supplements you are taking.', 'type': 'text', 'reasoning': 'If the patient is taking medications, gather more details.', 'options': None, 'min': None, 'max': None, 'default': None, 'required': False}, {'id': 'other_conditions', 'text': 'Do you have any other medical conditions, such as kidney problems, diabetes, or gastrointestinal disorders?', 'type': 'radio', 'reasoning': 'To check for other medical conditions that might be relevant.', 'options': ['Yes', 'No'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'condition_names', 'text': 'If yes, please list the names of the medical conditions.', 'type': 'text', 'reasoning': 'If the patient has other conditions, gather more details.', 'options': None, 'min': None, 'max': None, 'default': None, 'required': False}], 'more_needed': True}
+2025-08-04 02:42:15,392 - MedicalDiagnosisAgentSystem - INFO - Evaluating whether to continue questioning...
+2025-08-04 02:42:15,392 - MedicalDiagnosisAgentSystem - INFO - Need more questions: 0/5 minimum
+2025-08-04 02:42:15,393 - MedicalDiagnosisAgentSystem - INFO - Executing Step 4: Clarifying Questions
+2025-08-04 02:42:18,156 - MedicalDiagnosisAgentSystem - INFO - Generated Clarifying Questions: {'questions': [{'id': 'magnesium_supplements', 'text': 'Are you currently taking any magnesium supplements?', 'type': 'radio', 'reasoning': 'To determine if the patient is already taking magnesium supplements, which could influence their symptoms.', 'options': ['Yes', 'No'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'dietary_habits', 'text': 'Describe your typical daily diet. What types of foods do you usually eat?', 'type': 'text', 'reasoning': "To understand the patient's typical diet and assess their magnesium intake from food sources.", 'options': None, 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'other_medications', 'text': 'Are you taking any other medications, including over-the-counter drugs or herbal supplements?', 'type': 'text', 'reasoning': 'To identify any medications that could be affecting magnesium levels.', 'options': None, 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'specific_symptoms', 'text': 'Which specific symptoms are you experiencing that made you think of magnesium deficiency?', 'type': 'multiselect', 'reasoning': 'To pinpoint the specific symptoms the patient is experiencing that are concerning them.', 'options': ['Muscle cramps or spasms', 'Fatigue', 'Weakness', 'Irregular heartbeat', 'Numbness or tingling', 'Headaches', 'Other'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'symptom_severity', 'text': 'On a scale of 0 to 10, with 0 being no symptoms and 10 being the worst imaginable, how severe are your symptoms overall?', 'type': 'slider', 'reasoning': "To gauge the severity of the patient's symptoms.", 'options': None, 'min': 0, 'max': 10, 'default': None, 'required': True}], 'more_needed': True}
+2025-08-04 02:42:18,157 - MedicalDiagnosisAgentSystem - INFO - Evaluating whether to continue questioning...
+2025-08-04 02:42:18,157 - MedicalDiagnosisAgentSystem - INFO - Need more questions: 0/5 minimum
+2025-08-04 02:42:18,158 - MedicalDiagnosisAgentSystem - INFO - Executing Step 4: Clarifying Questions
+2025-08-04 02:42:20,739 - MedicalDiagnosisAgentSystem - INFO - Generated Clarifying Questions: {'questions': [{'id': 'magnesium_symptoms', 'text': 'Which of the following symptoms are you experiencing? (Select all that apply)', 'type': 'multiselect', 'reasoning': 'To understand which symptoms related to magnesium deficiency are present.', 'options': ['Muscle cramps or spasms', 'Fatigue', 'Weakness', 'Irregular heartbeat', 'Numbness or tingling', 'Headaches', 'Nausea or vomiting', 'Loss of appetite', 'Other'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'dietary_intake', 'text': 'How would you describe your diet? (e.g., balanced, restrictive, high in processed foods)', 'type': 'text', 'reasoning': 'To assess dietary habits and potential magnesium intake.', 'options': None, 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'medications', 'text': 'Are you currently taking any medications or supplements? If so, please list them.', 'type': 'text', 'reasoning': 'To identify medications that could affect magnesium levels.', 'options': None, 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'underlying_conditions', 'text': 'Do you have any known medical conditions, such as diabetes, kidney disease, or gastrointestinal disorders?', 'type': 'radio', 'reasoning': 'To explore potential underlying medical conditions that might contribute to magnesium deficiency.', 'options': ['Yes', 'No'], 'min': None, 'max': None, 'default': None, 'required': True}, {'id': 'dietary_changes', 'text': 'Have you recently made any significant changes to your diet?', 'type': 'radio', 'reasoning': 'To understand if there have been any recent changes in diet.', 'options': ['Yes', 'No'], 'min': None, 'max': None, 'default': None, 'required': True}], 'more_needed': True}
+2025-08-04 02:42:20,740 - MedicalDiagnosisAgentSystem - INFO - Evaluating whether to continue questioning...
+2025-08-04 02:42:20,740 - MedicalDiagnosisAgentSystem - INFO - Need more questions: 0/5 minimum
+2025-08-04 02:42:20,741 - MedicalDiagnosisAgentSystem - INFO - Executing Step 4: Clarifying Questions
+2025-08-04 02:42:22,898 - MedicalDiagnosisAgentSystem - ERROR - ❌ Error in diagnosis workflow: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. [violations {
+  quota_metric: "generativelanguage.googleapis.com/generate_content_free_tier_requests"
+  quota_id: "GenerateRequestsPerMinutePerProjectPerModel-FreeTier"
+  quota_dimensions {
+    key: "model"
+    value: "gemini-2.0-flash"
+  }
+  quota_dimensions {
+    key: "location"
+    value: "global"
+  }
+  quota_value: 15
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+, retry_delay {
+  seconds: 37
+}
+]
+Traceback (most recent call last):
+  File "/Users/Mehr/Desktop/Python/excercise/25/july/bio/medical_diagnosis_ai/src/workflow/graph.py", line 398, in run_diagnosis
+    result = self.app.invoke(initial_state)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/miniconda3/envs/ag/lib/python3.12/site-packages/langgraph/pregel/main.py", line 3008, in invoke
+    for chunk in self.stream(
+                 ^^^^^^^^^^^^
+  File "/opt/miniconda3/envs/ag/lib/python3.12/site-packages/langgraph/pregel/main.py", line 2644, in stream
+    for _ in runner.tick(
+             ^^^^^^^^^^^^
+  File "/opt/miniconda3/envs/ag/lib/python3.12/site-packages/langgraph/pregel/_runner.py", line 162, in tick
+    run_with_retry(
+  File "/opt/miniconda3/envs/ag/lib/python3.12/site-packages/langgraph/pregel/_retry.py", line 42, in run_with_retry
+    return task.proc.invoke(task.input, config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/miniconda3/envs/ag/lib/python3.12/site-packages/langgraph/_internal/_runnable.py", line 640, in invoke
+    input = context.run(step.invoke, input, config, **kwargs)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/miniconda3/envs/ag/lib/python3.12/site-packages/langgraph/_internal/_runnable.py", line 384, in invoke
+    ret = self.func(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/Mehr/Desktop/Python/excercise/25/july/bio/medical_diagnosis_ai/src/workflow/graph.py", line 146, in _clarifying_questions_step
+    questions = self.clarifying_question_agent.invoke({
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/miniconda3/envs/ag/lib/python3.12/site-packages/langchain_core/runnables/base.py", line 3046, in invoke
+    input_ = context.run(step.invoke, input_, config)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/miniconda3/envs/ag/lib/python3.12/site-packages/langchain_core/runnables/base.py", line 5434, in invoke
+    return self.bound.invoke(
+           ^^^^^^^^^^^^^^^^^^
+  File "/opt/miniconda3/envs/ag/lib/python3.12/site-packages/langchain_google_genai/chat_models.py", line 1334, in invoke
+    return super().invoke(input, config, stop=stop, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/miniconda3/envs/ag/lib/python3.12/site-packages/langchain_core/language_models/chat_models.py", line 395, in invoke
+    self.generate_prompt(
+  File "/opt/miniconda3/envs/ag/lib/python3.12/site-packages/langchain_core/language_models/chat_models.py", line 980, in generate_prompt
+    return self.generate(prompt_messages, stop=stop, callbacks=callbacks, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/miniconda3/envs/ag/lib/python3.12/site-packages/langchain_core/language_models/chat_models.py", line 799, in generate
+    self._generate_with_cache(
+  File "/opt/miniconda3/envs/ag/lib/python3.12/site-packages/langchain_core/language_models/chat_models.py", line 1045, in _generate_with_cache
+    result = self._generate(
+             ^^^^^^^^^^^^^^^
+  File "/opt/miniconda3/envs/ag/lib/python3.12/site-packages/langchain_google_genai/chat_models.py", line 1441, in _generate
+    response: GenerateContentResponse = _chat_with_retry(
+                                        ^^^^^^^^^^^^^^^^^
+  File "/opt/miniconda3/envs/ag/lib/python3.12/site-packages/langchain_google_genai/chat_models.py", line 231, in _chat_with_retry
+    return _chat_with_retry(**params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/miniconda3/envs/ag/lib/python3.12/site-packages/tenacity/__init__.py", line 336, in wrapped_f
+    return copy(f, *args, **kw)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/opt/miniconda3/envs/ag/lib/python3.12/site-packages/tenacity/__init__.py", line 475, in __call__
+    do = self.iter(retry_state=retry_state)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/miniconda3/envs/ag/lib/python3.12/site-packages/tenacity/__init__.py", line 376, in iter
+    result = action(retry_state)
+             ^^^^^^^^^^^^^^^^^^^
+  File "/opt/miniconda3/envs/ag/lib/python3.12/site-packages/tenacity/__init__.py", line 418, in exc_check
+    raise retry_exc.reraise()
+          ^^^^^^^^^^^^^^^^^^^
+  File "/opt/miniconda3/envs/ag/lib/python3.12/site-packages/tenacity/__init__.py", line 185, in reraise
+    raise self.last_attempt.result()
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/miniconda3/envs/ag/lib/python3.12/concurrent/futures/_base.py", line 449, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/opt/miniconda3/envs/ag/lib/python3.12/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+  File "/opt/miniconda3/envs/ag/lib/python3.12/site-packages/tenacity/__init__.py", line 478, in __call__
+    result = fn(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^
+  File "/opt/miniconda3/envs/ag/lib/python3.12/site-packages/langchain_google_genai/chat_models.py", line 222, in _chat_with_retry
+    raise e
+  File "/opt/miniconda3/envs/ag/lib/python3.12/site-packages/langchain_google_genai/chat_models.py", line 206, in _chat_with_retry
+    return generation_method(**kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/miniconda3/envs/ag/lib/python3.12/site-packages/google/ai/generativelanguage_v1beta/services/generative_service/client.py", line 868, in generate_content
+    response = rpc(
+               ^^^^
+  File "/opt/miniconda3/envs/ag/lib/python3.12/site-packages/google/api_core/gapic_v1/method.py", line 131, in __call__
+    return wrapped_func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/miniconda3/envs/ag/lib/python3.12/site-packages/google/api_core/retry/retry_unary.py", line 294, in retry_wrapped_func
+    return retry_target(
+           ^^^^^^^^^^^^^
+  File "/opt/miniconda3/envs/ag/lib/python3.12/site-packages/google/api_core/retry/retry_unary.py", line 156, in retry_target
+    next_sleep = _retry_error_helper(
+                 ^^^^^^^^^^^^^^^^^^^^
+  File "/opt/miniconda3/envs/ag/lib/python3.12/site-packages/google/api_core/retry/retry_base.py", line 214, in _retry_error_helper
+    raise final_exc from source_exc
+  File "/opt/miniconda3/envs/ag/lib/python3.12/site-packages/google/api_core/retry/retry_unary.py", line 147, in retry_target
+    result = target()
+             ^^^^^^^^
+  File "/opt/miniconda3/envs/ag/lib/python3.12/site-packages/google/api_core/timeout.py", line 130, in func_with_timeout
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/miniconda3/envs/ag/lib/python3.12/site-packages/google/api_core/grpc_helpers.py", line 78, in error_remapped_callable
+    raise exceptions.from_grpc_error(exc) from exc
+google.api_core.exceptions.ResourceExhausted: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. [violations {
+  quota_metric: "generativelanguage.googleapis.com/generate_content_free_tier_requests"
+  quota_id: "GenerateRequestsPerMinutePerProjectPerModel-FreeTier"
+  quota_dimensions {
+    key: "model"
+    value: "gemini-2.0-flash"
+  }
+  quota_dimensions {
+    key: "location"
+    value: "global"
+  }
+  quota_value: 15
+}
+, links {
+  description: "Learn more about Gemini API quotas"
+  url: "https://ai.google.dev/gemini-api/docs/rate-limits"
+}
+, retry_delay {
+  seconds: 37
+}
+]
+During task with name 'clarifying_questions' and id 'ee886671-0649-0254-525b-1fcb0552c30d'

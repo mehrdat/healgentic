@@ -1,0 +1,11 @@
+2025-07-31 20:25:38,767 - MedicalDiagnosisAgentSystem - INFO - 🤖 Initializing medical diagnosis agents...
+2025-07-31 20:25:38,848 - MedicalDiagnosisAgentSystem - INFO - ✅ All agents initialized
+2025-07-31 20:25:38,849 - MedicalDiagnosisAgentSystem - INFO - 🔄 Setting up diagnosis workflow...
+2025-07-31 20:25:38,860 - MedicalDiagnosisAgentSystem - INFO - ✅ Workflow setup complete
+2025-07-31 20:54:18,330 - MedicalDiagnosisAgentSystem - INFO - 🩺 Starting medical diagnosis for: i have DRESS how could i treat it?...
+2025-07-31 20:54:18,338 - MedicalDiagnosisAgentSystem - INFO - Executing Step 1: Initial Assessment
+2025-07-31 20:54:19,599 - MedicalDiagnosisAgentSystem - INFO - Executing Step 2: Information Gathering
+2025-07-31 20:54:21,115 - MedicalDiagnosisAgentSystem - INFO - Generated Search Queries: ['What are the signs and symptoms of DRESS syndrome?', 'Etiology and pathogenesis of DRESS syndrome', 'Diagnosis and treatment options for DRESS (Drug Reaction with Eosinophilia and Systemic Symptoms)', 'DRESS syndrome diagnostic criteria', 'DRESS syndrome management and prognosis']
+2025-07-31 20:54:25,867 - MedicalDiagnosisAgentSystem - INFO - Retrieved 15 documents from the knowledge base.
+2025-07-31 20:54:25,869 - MedicalDiagnosisAgentSystem - INFO - Executing Step 3: Hypothesis Generation
+2025-07-31 20:54:27,073 - MedicalDiagnosisAgentSystem - INFO - Generated Differential Diagnosis: {'hypotheses': [{'condition': 'Drug Reaction with Eosinophilia and Systemic Symptoms (DRESS)', 'probability': 0.8, 'reasoning': 'The patient reports having DRESS, which is a serious ADR often presenting with rash and fever. Systemic involvement can manifest as hepatitis, eosinophilia, pneumonitis, lymphadenopathy, and nephritis. Symptoms tend to present 2-6 weeks after introduction of medication.'}]}
