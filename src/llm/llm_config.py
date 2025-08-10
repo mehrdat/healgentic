@@ -26,8 +26,8 @@ def is_huggingface_space() -> bool:
     return bool(os.getenv("SPACE_ID") or os.getenv("SPACE_AUTHOR_NAME"))
 
 
-def _with_structured_adapter(llm):
-    """Return an adapter that implements with_structured_output(schema) using Pydantic."""
+def _install_structured_output(llm):
+    """Monkeypatch llm.with_structured_output(schema) while keeping llm Runnable-compatible."""
     try:
         from langchain_core.output_parsers import PydanticOutputParser
     except Exception:
@@ -39,45 +39,41 @@ def _with_structured_adapter(llm):
         HumanMessage = None
     from langchain_core.runnables import RunnableLambda
 
-    class _Adapter:
-        def __init__(self, inner):
-            self._inner = inner
+    def _with_structured_output(schema):
+        parser = PydanticOutputParser(pydantic_object=schema)
+        fmt = parser.get_format_instructions()
 
-        def __getattr__(self, name):
-            return getattr(self._inner, name)
-
-        def with_structured_output(self, schema):
-            parser = PydanticOutputParser(pydantic_object=schema)
-            fmt = parser.get_format_instructions()
-
-            def _invoke(value):
-                # Inject format instructions and call the inner LLM
-                if isinstance(value, str):
-                    if HumanMessage and SystemMessage:
-                        msgs = [SystemMessage(content="Output format (must strictly follow):\n" + fmt), HumanMessage(content=value)]
-                        out = self._inner.invoke(msgs)
+        def _prepend_instructions(x):
+            try:
+                if SystemMessage and HumanMessage:
+                    # Convert to messages with a leading system instruction
+                    if isinstance(x, list):
+                        return [SystemMessage(content="Output format (must strictly follow):\n" + fmt)] + x
+                    elif isinstance(x, str):
+                        return [SystemMessage(content="Output format (must strictly follow):\n" + fmt), HumanMessage(content=x)]
                     else:
-                        prompt = "Output format (must strictly follow):\n" + fmt + "\n\n" + value
-                        out = self._inner.invoke(prompt)
-                else:
-                    # Fallback: stringify
-                    prompt = "Output format (must strictly follow):\n" + fmt + "\n\n" + str(value)
-                    out = self._inner.invoke(prompt)
-                content = getattr(out, "content", out)
-                return parser.parse(content)
+                        return [SystemMessage(content="Output format (must strictly follow):\n" + fmt), HumanMessage(content=str(x))]
+            except Exception:
+                pass
+            # Fallback: plain string prompt
+            prefix = "Output format (must strictly follow):\n" + fmt + "\n\n"
+            return prefix + (x if isinstance(x, str) else str(x))
 
-            return RunnableLambda(_invoke)
+        return RunnableLambda(_prepend_instructions) | llm | parser
 
-    return _Adapter(llm)
+    # Attach method
+    setattr(llm, "with_structured_output", _with_structured_output)
+    return llm
 
 
 def get_llm():
     """Initialize the LLM based on environment."""
     if is_huggingface_space():
         print("[LLM] Spaces detected: using local transformers model")
-        return _with_structured_adapter(get_local_pipeline_llm())
-    print("[LLM] Local detected: using Google Gemini (if available)")
-    return get_google_llm()
+        return _install_structured_output(get_local_pipeline_llm())
+    else:
+        print("[LLM] Local detected: using Google Gemini (if available)")
+        return get_google_llm()
 
 
 def get_google_llm():
@@ -90,10 +86,10 @@ def get_google_llm():
             raise ValueError("Missing GOOGLE_API_KEY in environment")
         llm = ChatGoogleGenerativeAI(model=model_name, google_api_key=api_key, temperature=0.0, max_tokens=900)
         print("[LLM] Gemini initialized:", model_name)
-        return _with_structured_adapter(llm)
+        return _install_structured_output(llm)
     except Exception as e:
         print("[LLM] Gemini unavailable:", e, "— falling back to local HF pipeline")
-        return _with_structured_adapter(get_local_pipeline_llm())
+        return _install_structured_output(get_local_pipeline_llm())
 
 
 def get_huggingface_llm():
@@ -106,10 +102,10 @@ def get_huggingface_llm():
         model_name = "microsoft/DialoGPT-large"
         llm = HuggingFaceEndpoint(repo_id=model_name, temperature=0.1, max_new_tokens=512, repetition_penalty=1.1, return_full_text=False)
         print("[LLM] HF Endpoint initialized:", model_name)
-        return _with_structured_adapter(llm)
+        return _install_structured_output(llm)
     except Exception as e:
         print("[LLM] HF Endpoint failed:", e, "— using local HF pipeline")
-        return _with_structured_adapter(get_local_pipeline_llm())
+        return _install_structured_output(get_local_pipeline_llm())
 
 
 def get_local_pipeline_llm():
