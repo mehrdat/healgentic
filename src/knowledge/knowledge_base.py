@@ -7,7 +7,6 @@ from typing import List
 from pathlib import Path
 from dotenv import load_dotenv
 
-from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores import FAISS
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
@@ -129,20 +128,35 @@ class MedicalKnowledgeBase:
     
     def load_vector_store(self) -> bool:
         """Load existing vector store"""
-
         try:
-            vector_store_path = os.path.join(self.vector_store_dir, "medical_knowledge")
-            if os.path.exists(vector_store_path):
+            # Primary (new) location
+            path_primary = os.path.join(self.vector_store_dir, "medical_knowledge")
+            # Backward-compatible location: index files directly under vector_store dir
+            path_legacy = self.vector_store_dir
+
+            def has_index_files(path: str) -> bool:
+                return os.path.exists(os.path.join(path, "index.faiss")) and os.path.exists(os.path.join(path, "index.pkl"))
+
+            load_path = None
+            if os.path.exists(path_primary) and has_index_files(path_primary):
+                load_path = path_primary
+            elif has_index_files(path_legacy):
+                load_path = path_legacy
+
+            if load_path:
+                print(f"📦 Loading vector store from: {load_path}")
                 self.vector_store = FAISS.load_local(
-                    vector_store_path, 
+                    load_path,
                     self.embeddings,
-                    allow_dangerous_deserialization=True
+                    allow_dangerous_deserialization=True,
                 )
                 print("✅ Vector store loaded successfully")
                 return True
-            else:
-                print("⚠️  Vector store not found. Please run process_medical_textbooks() first.")
-                return False
+
+            print(
+                "⚠️  Vector store not found. Expected either 'data/vector_store/medical_knowledge' or 'data/vector_store' to contain index.faiss and index.pkl."
+            )
+            return False
         except Exception as e:
             print(f"❌ Error loading vector store: {e}")
             return False

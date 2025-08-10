@@ -14,8 +14,8 @@ os.environ["LANGSMITH_TRACING"] = "false"
 # Add src to path for absolute imports
 sys.path.insert(0, str(Path(__file__).parent))
 
-# Import warning suppression first
-from utils.disable_warnings import suppress_warnings
+# Import warning suppression first (optional)
+# from utils.disable_warnings import suppress_warnings
 
 from knowledge.knowledge_base import MedicalKnowledgeBase
 from workflow.graph import MedicalDiagnosisWorkflow
@@ -58,6 +58,18 @@ class MedicalDiagnosisSystem:
         """Get system status"""
         return {
             "knowledge_base": self.knowledge_base.get_statistics(),
+            "workflow": {
+                "agents_initialized": True,
+                "steps": [
+                    "initial_assessment",
+                    "information_gathering",
+                    "hypothesis_generation",
+                    "clarifying_questions",
+                    "hypothesis_refinement",
+                    "final_diagnosis",
+                    "treatment_plan",
+                ],
+            },
         }
 
 
