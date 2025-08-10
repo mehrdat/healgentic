@@ -240,10 +240,11 @@ with colB:
         st.session_state.show_patient_form = True
         st.rerun()
 
-# Inline optional Patient Information (shown only when needed)
+### Patient Information (below chat)
+st.markdown("---")
+st.markdown("#### 👤 Patient Information (optional)")
 if st.session_state.show_patient_form or not st.session_state.patient_info:
     with st.container(border=True):
-        st.markdown("**👤 Patient Information (optional)**")
         pi = st.session_state.patient_info or {}
         col1, col2 = st.columns(2)
         with col1:

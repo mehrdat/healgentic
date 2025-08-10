@@ -4,6 +4,8 @@ Description: Gathers and structures the initial user query (symptoms, age, etc.)
             into a standardized format for the workflow.
 """
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnableLambda
 try:
     from langchain.output_parsers import PydanticOutputParser
 except Exception:
@@ -71,7 +73,34 @@ def get_initial_assessment_agent():
     llm = get_llm()
     parser = PydanticOutputParser(pydantic_object=StructuredAssessment)
     prompt = ASSESSMENT_PROMPT.partial(format_instructions=parser.get_format_instructions())
-    agent = prompt | llm | parser
+    text_out = StrOutputParser()
+
+    def _safe_parse(s: str) -> StructuredAssessment:
+        # Guard against None or literal 'null'
+        if s is None or str(s).strip().lower() in {"null", "none", ""}:
+            return StructuredAssessment(
+                main_symptoms=[],
+                secondary_symptoms=[],
+                duration_of_symptoms=None,
+                patient_age=None,
+                patient_sex=None,
+                other_relevant_info=None,
+                initial_summary="Initial analysis unavailable; proceeding with minimal info."
+            )
+        try:
+            return parser.parse(s)
+        except Exception:
+            return StructuredAssessment(
+                main_symptoms=[],
+                secondary_symptoms=[],
+                duration_of_symptoms=None,
+                patient_age=None,
+                patient_sex=None,
+                other_relevant_info=None,
+                initial_summary="Initial analysis unreliable; proceeding with minimal info."
+            )
+
+    agent = prompt | llm | text_out | RunnableLambda(_safe_parse)
     return agent
 
 
