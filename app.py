@@ -66,38 +66,32 @@ st.title("🏥 Medical Diagnosis AI (Streamlit)")
 st.markdown("This Space uses free Hugging Face models and a medical knowledge base.")
 
 with st.sidebar:
-    st.header("⚙️ Setup")
-    if st.button("Initialize System", use_container_width=True):
-        with st.spinner("Starting system..."):
-            _sys = get_system()
-        st.success("System initialized.")
+    st.header("⚙️ Tools")
+
+    # Reset session moved to sidebar
+    if st.button("Reset Session", use_container_width=True):
+        st.session_state.diag_state = None
+        st.session_state.last_question_id = None
+        st.session_state.chat_history = []
+        st.rerun()
 
     st.divider()
-    st.subheader("📦 Load Vector Store from HF")
-    repo = st.text_input("HF repo id (e.g., username/medical_kb_repo)")
-    repo_type = st.selectbox("Repo type", ["dataset", "model", "space"], index=0)
-    sub = st.text_input("Optional subfolder (where 'medical_knowledge' lives)")
-    if st.button("Download & Load", use_container_width=True, disabled=not repo.strip()):
-        try:
-            with st.spinner("Downloading vector store from Hugging Face..."):
-                path = load_vector_store_from_hf(repo_id=repo.strip(), subfolder=sub.strip() or None, repo_type=repo_type)
-            st.success(f"Vector store synced to: {path}")
-            st.info("Recreating system to pick up the new index...")
-            get_system.clear()
-            _sys = get_system()
-            st.success("Vector store ready.")
-        except Exception as e:
-            st.error(f"Failed to load vector store: {e}")
-
-    st.divider()
-    st.subheader("🧱 Knowledge Base")
-    if st.button("Rebuild from /data/medical_textbooks", use_container_width=True):
-        try:
-            with st.spinner("Building FAISS index from textbooks..."):
-                chunks = get_system().initialize_knowledge_base()
-            st.success(f"Rebuilt vector store with {chunks} chunks.")
-        except Exception as e:
-            st.error(f"Build failed: {e}")
+    with st.expander("Advanced: Sync vector store from Hugging Face"):
+        st.caption("Use this if you want to download a prebuilt FAISS index from your HF repo. If your database is already in /data/vector_store, you can ignore this.")
+        repo = st.text_input("HF repo id", help="Format: namespace/name, e.g., username/medical_kb_repo")
+        repo_type = st.selectbox("Repo type", ["dataset", "model", "space"], index=0, help="The type of Hugging Face repository. Choose 'dataset' if you stored the index in a dataset repo.")
+        sub = st.text_input("Optional subfolder", help="Folder under the repo that contains 'medical_knowledge' or the index files.")
+        if st.button("Download & Load", use_container_width=True, disabled=not repo.strip()):
+            try:
+                with st.spinner("Downloading vector store from Hugging Face..."):
+                    path = load_vector_store_from_hf(repo_id=repo.strip(), subfolder=sub.strip() or None, repo_type=repo_type)
+                st.success(f"Vector store synced to: {path}")
+                st.info("Recreating system to pick up the new index...")
+                get_system.clear()
+                _sys = get_system()
+                st.success("Vector store ready.")
+            except Exception as e:
+                st.error(f"Failed to load vector store: {e}")
 
     st.divider()
     st.subheader("📊 Status")
@@ -108,18 +102,11 @@ with st.sidebar:
         except Exception as e:
             st.error(f"Status error: {e}")
 
+    # Inline controls are rendered next to the chat when needed
 
-# Patient info
-st.subheader("👤 Patient Information")
-col1, col2 = st.columns(2)
-with col1:
-    age = st.number_input("Age", min_value=0, max_value=150, value=30)
-    gender = st.selectbox("Gender", ["Not specified", "Male", "Female", "Other"])
-with col2:
-    med_hist = st.text_area("Medical History", height=100)
-    meds = st.text_area("Current Medications", height=100)
 
-patient = dict(age=age, gender=gender, medical_history=med_hist, medications=meds)
+# Patient info will be collected through Q&A dynamically
+patient = {}
 
 
 # Diagnosis chat (full conversation view)
@@ -193,7 +180,6 @@ if user_input:
                         summary_lines.append(f"Primary diagnosis: {final.get('primary_diagnosis')}")
                     if final.get("final_summary"):
                         summary_lines.append(final.get("final_summary"))
-                    # Optional: brief treatment suggestions
                     meds_section = next_state.get("medications", {}).get("suggestions", [])
                     meds_lines = [m.get("suggestion") for m in meds_section[:5] if m.get("suggestion")]
                     if meds_lines:
@@ -211,10 +197,132 @@ if user_input:
 # Controls
 colA, colB = st.columns([1, 1])
 with colA:
-    st.caption("Use the chat box to converse with the AI. It will ask follow-up questions.")
+    st.caption("Use the chat to converse with the AI. It will ask follow-up questions.")
 with colB:
-    if st.button("Reset Session", use_container_width=True):
-        st.session_state.diag_state = None
-        st.session_state.last_question_id = None
-        st.session_state.chat_history = []
-        st.rerun()
+    st.empty()
+
+# Inline structured controls for the current question (context-aware UI)
+state_now = st.session_state.get("diag_state")
+if isinstance(state_now, dict) and state_now.get("status") == "question_pending":
+    q = state_now.get("question", {})
+    qid = q.get("id", "q")
+    qtext = q.get("text", "")
+    qtype = (q.get("type") or "text").lower()
+    opts = q.get("options") or []
+    qmin = q.get("min") if q.get("min") is not None else 0
+    qmax = q.get("max") if q.get("max") is not None else 10
+    qdef = q.get("default")
+
+    # Only show UI controls when needed (non-text types)
+    if qtype in {"slider", "radio", "select", "multiselect", "number", "date"}:
+        st.markdown("---")
+        st.caption("Answer using a control or type in the chat above.")
+        with st.container(border=True):
+            value = None
+            if qtype == "slider":
+                default_val = int(qdef) if isinstance(qdef, (int, float)) else int((qmin + qmax) / 2)
+                value = st.slider(qtext or "Select a value", min_value=int(qmin), max_value=int(qmax), value=default_val, key=f"slider_{qid}")
+            elif qtype == "radio":
+                options = opts or ["Yes", "No"]
+                value = st.radio(qtext or "Choose one", options, key=f"radio_{qid}")
+            elif qtype == "select":
+                options = opts or ["Option 1", "Option 2"]
+                value = st.selectbox(qtext or "Select one", options, key=f"select_{qid}")
+            elif qtype == "multiselect":
+                options = opts or ["Option A", "Option B"]
+                value = st.multiselect(qtext or "Select any", options, default=qdef or [], key=f"multi_{qid}")
+            elif qtype == "number":
+                default_val = int(qdef) if isinstance(qdef, (int, float)) else int(qmin)
+                value = st.number_input(qtext or "Enter a number", min_value=int(qmin), max_value=int(qmax), value=default_val, key=f"num_{qid}")
+            elif qtype == "date":
+                value = st.date_input(qtext or "Pick a date", key=f"date_{qid}")
+
+            col1, col2 = st.columns([1, 2])
+            with col1:
+                if st.button("Submit", key=f"submit_{qid}", use_container_width=True):
+                    # Convert control value to string answer
+                    if isinstance(value, list):
+                        answer_text = ", ".join(map(str, value))
+                    else:
+                        answer_text = str(value)
+                    if answer_text.strip():
+                        append_message("user", answer_text)
+                        try:
+                            with st.spinner("Processing your answer…"):
+                                next_state = get_system().workflow.answer_question(q.get("id", ""), answer_text, state_now.get("state"))
+                            st.session_state.diag_state = next_state
+                            if isinstance(next_state, dict) and next_state.get("status") == "question_pending":
+                                show_current_question_if_new(next_state)
+                            elif isinstance(next_state, dict) and next_state.get("status") == "diagnosis_complete":
+                                final = next_state.get("final_diagnosis", {})
+                                summary_lines = []
+                                if final.get("primary_diagnosis"):
+                                    summary_lines.append(f"Primary diagnosis: {final.get('primary_diagnosis')}")
+                                if final.get("final_summary"):
+                                    summary_lines.append(final.get("final_summary"))
+                                meds_section = next_state.get("medications", {}).get("suggestions", [])
+                                meds_lines = [m.get("suggestion") for m in meds_section[:5] if m.get("suggestion")]
+                                if meds_lines:
+                                    summary_lines.append("\n**Treatment suggestions:**\n- " + "\n- ".join(meds_lines))
+                                if summary_lines:
+                                    append_message("assistant", "\n\n".join(summary_lines))
+                            st.rerun()
+                        except Exception as e:
+                            append_message("assistant", f"Error processing answer: {e}")
+                            st.rerun()
+            with col2:
+                st.caption(q.get("reasoning") or "")
+
+# Results panel (concise design) when diagnosis is complete
+def _short_explainer(name: str) -> str:
+    mapping = {
+        "antacid": "Neutralizes stomach acid for quick relief.",
+        "ppi": "Reduces acid production (once daily).",
+        "h2": "Reduces acid, often at night.",
+        "alginate": "Forms a protective raft to block reflux.",
+        "ginger": "May soothe nausea and digestion.",
+        "zinc": "Can irritate the esophagus; take with food.",
+        "bed elevation": "Reduces nighttime reflux.",
+        "weight": "Weight loss reduces abdominal pressure.",
+    }
+    key = name.lower()
+    for k, v in mapping.items():
+        if k in key:
+            return v
+    return "Commonly used option for symptom control."
+
+def render_results(state_dict: dict):
+    if not isinstance(state_dict, dict):
+        return
+    if state_dict.get("status") != "diagnosis_complete":
+        return
+    final = state_dict.get("final_diagnosis", {})
+    meds_section = state_dict.get("medications", {}).get("suggestions", [])
+
+    st.markdown("---")
+    st.subheader("🎯 Result")
+    c1, c2 = st.columns([2, 1])
+    with c1:
+        pdx = final.get("primary_diagnosis", "Unknown")
+        st.markdown(f"### {pdx}")
+        if final.get("final_summary"):
+            st.markdown(final.get("final_summary"))
+    with c2:
+        st.metric("Confidence", f"{int(state_dict.get('confidence_score', 0.0)*100)}%")
+
+    if meds_section:
+        st.markdown("#### 💊 Options")
+        for m in meds_section[:8]:
+            s = (m or {}).get("suggestion")
+            if not s:
+                continue
+            one_line = _short_explainer(s)
+            with st.container(border=True):
+                st.markdown(f"**{s}**  ")
+                st.caption(one_line)
+                details = (m or {}).get("details") or (m or {}).get("reasoning")
+                with st.expander("Why this?"):
+                    st.write(details or "Targets reflux/heartburn mechanisms.")
+
+# Auto-render results if available
+render_results(st.session_state.get("diag_state"))
