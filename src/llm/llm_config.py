@@ -35,9 +35,9 @@ def get_llm():
     """
     
     if is_huggingface_space():
-        # Running on Hugging Face Spaces - use free models
-        print("🌐 Detected Hugging Face Spaces environment")
-        return get_huggingface_llm()
+        # Running on Hugging Face Spaces - use a free local transformers pipeline
+        print("🌐 Detected Hugging Face Spaces environment (using local transformers model)")
+        return get_local_pipeline_llm()
     else:
         # Running locally or elsewhere - use Google Gemini
         print("💻 Detected local environment")
@@ -75,7 +75,7 @@ def get_google_llm():
         return get_huggingface_llm()
 
 def get_huggingface_llm():
-    """Get Hugging Face LLM for Spaces or fallback"""
+    """Get Hugging Face LLM via Inference API (not used on Spaces by default)."""
     try:
         # Try different import paths for Hugging Face
         try:
@@ -84,8 +84,7 @@ def get_huggingface_llm():
             try:
                 from langchain_community.llms import HuggingFaceEndpoint
             except ImportError:
-                from langchain.llms import HuggingFacePipeline
-                from transformers import pipeline
+                # Fall back to local pipeline interface
                 return get_local_pipeline_llm()
         
         # Try Hugging Face Inference API first
@@ -104,41 +103,40 @@ def get_huggingface_llm():
             return llm
             
         except Exception as e:
-            print(f"⚠️ Hugging Face API error: {e}")
-            # Fallback to GPT-2
-            fallback_model = "gpt2"
-            llm = HuggingFaceEndpoint(
-                repo_id=fallback_model,
-                temperature=0.1,
-                max_new_tokens=256,
-                repetition_penalty=1.1,
-                return_full_text=False,
-            )
-            
-            print(f"✅ Initialized fallback model: {fallback_model}")
-            return llm
+            print(f"⚠️ Hugging Face API error: {e}; falling back to local transformers pipeline")
+            return get_local_pipeline_llm()
             
     except ImportError:
         print("⚠️ Hugging Face libraries not available, using local pipeline")
         return get_local_pipeline_llm()
 
 def get_local_pipeline_llm():
-    """Fallback to local transformers pipeline"""
+    """Use a local transformers pipeline (free). Defaults to flan-t5-small for text2text-generation."""
     try:
         from transformers import pipeline
-        from langchain.llms import HuggingFacePipeline
-        
+        try:
+            # Prefer community import for newer LangChain versions
+            from langchain_community.llms import HuggingFacePipeline
+        except Exception:
+            from langchain.llms import HuggingFacePipeline  # fallback
+
+        # Allow override via env; default to a small, free model
+        model_name = os.getenv("HF_LOCAL_MODEL", "google/flan-t5-small")
+
+        # Choose task based on model family (simple heuristic)
+        task = "text2text-generation" if any(k in model_name.lower() for k in ["t5", "flan"]) else "text-generation"
+
         pipe = pipeline(
-            "text-generation",
-            model="gpt2",
+            task,
+            model=model_name,
             max_new_tokens=256,
             temperature=0.1,
-            do_sample=True,
-            repetition_penalty=1.1
+            do_sample=False,
+            repetition_penalty=1.05,
         )
-        
+
         llm = HuggingFacePipeline(pipeline=pipe)
-        print("✅ Initialized local transformers pipeline")
+        print(f"✅ Initialized local transformers pipeline: {model_name} ({task})")
         return llm
         
     except Exception as e:
@@ -154,9 +152,9 @@ if __name__ == '__main__':
         print("✅ LLM Initialized Successfully! \n")
         
         if is_huggingface_space():
-            print(f"   - Provider: Hugging Face (Free)\n")
+            print("   - Provider: Hugging Face (Free)\n")
         else:
-            print(f"   - Provider: Google Gemini\n")
+            print("   - Provider: Google Gemini\n")
             if hasattr(llm_instance, 'model'):
                 print(f"   - Model: {llm_instance.model}\n")
 
