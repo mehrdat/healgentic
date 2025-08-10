@@ -5,11 +5,15 @@ Description: Suggests potential next steps or general treatment options based on
              not prescribe medication.
 """
 from langchain_core.prompts import ChatPromptTemplate
+try:
+    from langchain.output_parsers import PydanticOutputParser
+except Exception:
+    from langchain_core.output_parsers import PydanticOutputParser
 from pydantic import BaseModel, Field
 from typing import List, Optional
 
 from llm.llm_config import get_llm
-from agents.final_diagnosis_agent import FinalDiagnosis
+# from agents.final_diagnosis_agent import FinalDiagnosis  # not required at runtime
 
 # --- Pydantic Models ---
 
@@ -60,7 +64,11 @@ TREATMENT_PROMPT = ChatPromptTemplate.from_messages(
             - Monitoring (e.g., 'Keep a journal of your symptoms.')
             - When to See a Doctor (e.g., 'Consult a doctor if the headache becomes the worst you have ever experienced.')
             
-            Generate ONLY the treatment plan in the requested structured fields.""",
+            Generate ONLY the treatment plan in the requested structured fields.
+            
+            Output format (must strictly follow):
+            {format_instructions}
+            """,
         ),
         (
             "human",
@@ -84,33 +92,12 @@ def get_treatment_plan_agent():
     general, non-prescriptive next steps.
     """
     llm = get_llm()
-    structured_llm = llm.with_structured_output(TreatmentPlan)
-    agent = TREATMENT_PROMPT | structured_llm
+    parser = PydanticOutputParser(pydantic_object=TreatmentPlan)
+    prompt = TREATMENT_PROMPT.partial(format_instructions=parser.get_format_instructions())
+    agent = prompt | llm | parser
     return agent
 
 # --- Example Usage (for testing) ---
 
 if __name__ == '__main__':
-    treatment_agent = get_treatment_plan_agent()
-    
-    final_diagnosis = FinalDiagnosis(
-        primary_diagnosis="Migraine",
-        confidence_score=0.9,
-        final_summary="The diagnosis is likely a migraine, given the combination of a severe headache behind the eyes, nausea, and sensitivity to light.",
-        next_steps=["Consult a doctor for a formal diagnosis.", "Keep a headache diary."],
-        disclaimer="This is an AI-generated assessment and not a substitute for professional medical advice."
-    )
-    
-    retrieved_knowledge = """
-    - Migraine Management: Management often involves rest in a dark, quiet environment. Over-the-counter pain relievers can be effective for some. Staying hydrated is important. Identifying and avoiding triggers (like certain foods, stress, or lack of sleep) is a key long-term strategy. A doctor may prescribe specific medications like triptans. It is important to see a doctor if the headache pattern changes or if it is accompanied by a high fever or stiff neck.
-    """
-    
-    response = treatment_agent.invoke({
-        "final_diagnosis": final_diagnosis.dict(),
-        "retrieved_knowledge": retrieved_knowledge
-    })
-    
-    print(f"--- General Suggestions for: {response.condition} ---")
-    for s in response.suggestions:
-        print(f"- [{s.category}] {s.suggestion}")
-    print(f"\nImportant Note: {response.important_note}")
+    pass

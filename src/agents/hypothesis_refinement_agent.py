@@ -4,7 +4,11 @@ Description: Updates the differential diagnosis based on the user's answers to
             the clarifying questions.
 """
 from langchain_core.prompts import ChatPromptTemplate
-from pydantic import BaseModel, Field
+try:
+    from langchain.output_parsers import PydanticOutputParser
+except Exception:
+    from langchain_core.output_parsers import PydanticOutputParser
+from pydantic import Field
 
 from llm.llm_config import get_llm
 from agents.hypothesis_generation_agent import DifferentialDiagnosis
@@ -35,7 +39,11 @@ REFINEMENT_PROMPT = ChatPromptTemplate.from_messages(
             4.  The new probabilities should still be from 0.0 to 1.0 and should ideally sum to a value close to 1.0.
             5.  Provide a concise summary explaining *why* the probabilities have changed. For example, "The patient's report of sensitivity to light significantly increases the likelihood of a migraine."
             
-            Present the most likely condition first in the updated list.""",
+            Present the most likely condition first in the updated list.
+            
+            Output format (must strictly follow):
+            {format_instructions}
+            """,
         ),
         (
             "human",
@@ -59,8 +67,9 @@ def get_hypothesis_refinement_agent():
     returns an updated, more accurate differential diagnosis.
     """
     llm = get_llm()
-    structured_llm = llm.with_structured_output(RefinedDifferentialDiagnosis)
-    agent = REFINEMENT_PROMPT | structured_llm
+    parser = PydanticOutputParser(pydantic_object=RefinedDifferentialDiagnosis)
+    prompt = REFINEMENT_PROMPT.partial(format_instructions=parser.get_format_instructions())
+    agent = prompt | llm | parser
     return agent
 
 # --- Example Usage (for testing) ---

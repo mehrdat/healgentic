@@ -4,11 +4,15 @@ Description: Generates targeted questions with UI metadata for the user to help
             differentiate between the hypotheses in the differential diagnosis.
 """
 from langchain_core.prompts import ChatPromptTemplate
+try:
+    from langchain.output_parsers import PydanticOutputParser
+except Exception:
+    from langchain_core.output_parsers import PydanticOutputParser
 from pydantic import BaseModel, Field
 from typing import List, Optional, Any
 
 from llm.llm_config import get_llm
-from agents.hypothesis_generation_agent import DifferentialDiagnosis
+# from agents.hypothesis_generation_agent import DifferentialDiagnosis  # not required at runtime
 
 # --- Pydantic Models ---
 
@@ -63,6 +67,9 @@ CLARIFYING_QUESTIONS_PROMPT = ChatPromptTemplate.from_messages([
                 - "date": For dates and timeframes
     Previously asked: {previously_asked}
     Current question count: {question_count}
+    
+    Output format (must strictly follow):
+    {format_instructions}
     """),
     ("human", """
     Differential diagnosis: {differential_diagnosis}
@@ -121,53 +128,26 @@ def get_clarifying_question_agent():
     with UI metadata for interactive answering.
     """
     llm = get_llm()
-    structured_llm = llm.with_structured_output(InteractiveClarifyingQuestions)
-    #agent = INTERACTIVE_QUESTION_PROMPT | structured_llm
-    agent = CLARIFYING_QUESTIONS_PROMPT | structured_llm
+    parser = PydanticOutputParser(pydantic_object=InteractiveClarifyingQuestions)
+    prompt = CLARIFYING_QUESTIONS_PROMPT.partial(format_instructions=parser.get_format_instructions())
+    agent = prompt | llm | parser
 
     return agent
 
 # --- Example Usage (for testing) ---
 
 if __name__ == '__main__':
-    from medical_diagnosis_ai.src.agents.initial_assessment_agent import StructuredAssessment
-    from medical_diagnosis_ai.src.agents.hypothesis_generation_agent import DiagnosisHypothesis
-
-    question_agent = get_clarifying_question_agent()
-    
-    test_assessment = StructuredAssessment(
-        main_symptoms=['headache behind eyes'],
-        secondary_symptoms=['nausea', 'dizziness when standing up'],
-        duration_of_symptoms='1 week',
-        patient_age=45,
-        patient_sex='male',
-        other_relevant_info='No fever reported.',
-        initial_summary="Patient presents with a week-long headache with nausea and dizziness."
-    )
-
-    test_diagnosis = DifferentialDiagnosis(
-        hypotheses=[
-            DiagnosisHypothesis(condition="Migraine", probability=0.7, reasoning="Headache with nausea fits the pattern of a migraine."),
-            DiagnosisHypothesis(condition="Postural Orthostatic Tachycardia Syndrome (POTS)", probability=0.2, reasoning="Dizziness upon standing is a key indicator of POTS."),
-            DiagnosisHypothesis(condition="Tension Headache", probability=0.1, reasoning="Headache is the primary symptom, but nausea is less common.")
-        ]
-    )
-    
-    response = question_agent.invoke({
-        "differential_diagnosis": test_diagnosis.model_dump(),
-        "assessment": test_assessment.model_dump(),
+    # Minimal smoke test
+    agent = get_clarifying_question_agent()
+    sample = {
+        "differential_diagnosis": {"hypotheses": [{"condition": "Migraine", "probability": 0.7, "reasoning": "Example"}]},
+        "assessment": {"main_symptoms": ["headache"]},
         "user_answers": {},
-        "question_count": 1
-    })
-    
-    print("--- Generated Interactive Clarifying Questions ---")
-    for q in response.questions:
-        print(f"- ID: {q.id}")
-        print(f"  Question: {q.text}")
-        print(f"  Type: {q.type}")
-        print(f"  Reasoning: {q.reasoning}")
-        if q.options:
-            print(f"  Options: {q.options}")
-        if q.min is not None or q.max is not None:
-            print(f"  Range: {q.min}-{q.max}")
-        print()
+        "question_count": 1,
+        "previously_asked": []
+    }
+    try:
+        out = agent.invoke(sample)
+        print("OK", out)
+    except Exception as e:
+        print("Test failed:", e)

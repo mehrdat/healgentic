@@ -4,6 +4,10 @@ Description: Takes a structured assessment and generates targeted search queries
             to retrieve relevant information from the medical knowledge base.
 """
 from langchain_core.prompts import ChatPromptTemplate
+try:
+    from langchain.output_parsers import PydanticOutputParser
+except Exception:
+    from langchain_core.output_parsers import PydanticOutputParser
 from pydantic import BaseModel, Field
 from typing import List
 
@@ -34,7 +38,11 @@ INFORMATION_GATHERING_PROMPT = ChatPromptTemplate.from_messages(
             
             Combine symptoms where it makes sense to do so.
             
-            Generate ONLY the list of search queries.""",
+            Generate ONLY the list of search queries.
+            
+            Output format (must strictly follow):
+            {format_instructions}
+            """,
         ),
         (
             "human",
@@ -60,8 +68,9 @@ def get_information_gathering_agent():
     optimized search queries for the knowledge base.
     """
     llm = get_llm()
-    structured_llm = llm.with_structured_output(SearchQueries)
-    agent = INFORMATION_GATHERING_PROMPT | structured_llm
+    parser = PydanticOutputParser(pydantic_object=SearchQueries)
+    prompt = INFORMATION_GATHERING_PROMPT.partial(format_instructions=parser.get_format_instructions())
+    agent = prompt | llm | parser
     return agent
 
 # --- Example Usage (for testing) ---

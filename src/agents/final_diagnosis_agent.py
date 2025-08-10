@@ -4,11 +4,15 @@ Description: Provides a final, reasoned diagnosis with a confidence score and
              recommendations for next steps.
 """
 from langchain_core.prompts import ChatPromptTemplate
+try:
+    from langchain.output_parsers import PydanticOutputParser
+except Exception:
+    from langchain_core.output_parsers import PydanticOutputParser
 from pydantic import BaseModel, Field
 from typing import List
 
 from llm.llm_config import get_llm
-from agents.hypothesis_refinement_agent import RefinedDifferentialDiagnosis
+from agents.hypothesis_refinement_agent import RefinedDifferentialDiagnosis  # noqa: F401 (type reference in docstrings)
 
 # --- Pydantic Models ---
 
@@ -37,7 +41,11 @@ FINAL_DIAGNOSIS_PROMPT = ChatPromptTemplate.from_messages(
             4.  Provide a list of safe, responsible next steps. This should ALWAYS include a recommendation to consult a human doctor.
             5.  ALWAYS include a clear disclaimer that you are an AI and this is not a real medical diagnosis.
             
-            Your tone should be empathetic, clear, and highly responsible.""",
+            Your tone should be empathetic, clear, and highly responsible.
+            
+            Output format (must strictly follow):
+            {format_instructions}
+            """,
         ),
         (
             "human",
@@ -58,37 +66,12 @@ def get_final_diagnosis_agent():
     user-facing output.
     """
     llm = get_llm()
-    structured_llm = llm.with_structured_output(FinalDiagnosis)
-    agent = FINAL_DIAGNOSIS_PROMPT | structured_llm
+    parser = PydanticOutputParser(pydantic_object=FinalDiagnosis)
+    prompt = FINAL_DIAGNOSIS_PROMPT.partial(format_instructions=parser.get_format_instructions())
+    agent = prompt | llm | parser
     return agent
 
 # --- Example Usage (for testing) ---
 
 if __name__ == '__main__':
-    from medical_diagnosis_ai.src.agents.hypothesis_generation_agent import DiagnosisHypothesis
-
-    final_diagnosis_agent = get_final_diagnosis_agent()
-    
-    # This is the refined diagnosis from the previous agent's example
-    refined_diagnosis = RefinedDifferentialDiagnosis(
-        hypotheses=[
-            DiagnosisHypothesis(condition="Migraine", probability=0.9, reasoning="Sensitivity to light is a classic migraine symptom, which the patient confirmed."),
-            DiagnosisHypothesis(condition="Postural Orthostatic Tachycardia Syndrome (POTS)", probability=0.05, reasoning="Dizziness on standing is present, but the headache symptoms are more dominant."),
-            DiagnosisHypothesis(condition="Tension Headache", probability=0.05, reasoning="This is now less likely given the confirmed sensitivity to light and nausea.")
-        ],
-        refinement_summary="The patient's report of sensitivity to light significantly increases the likelihood of a migraine and decreases the likelihood of a tension headache."
-    )
-    
-    response = final_diagnosis_agent.invoke({
-        "refined_diagnosis": refined_diagnosis.dict()
-    })
-    
-    print("--- Final Diagnosis Output ---")
-    print(f"Primary Diagnosis: {response.primary_diagnosis}")
-    print(f"Confidence Score: {response.confidence_score:.2f}")
-    print("\nFinal Summary:")
-    print(response.final_summary)
-    print("\nRecommended Next Steps:")
-    for step in response.next_steps:
-        print(f"- {step}")
-    print(f"\nDisclaimer: {response.disclaimer}")
+    pass

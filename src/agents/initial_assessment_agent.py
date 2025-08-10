@@ -4,6 +4,10 @@ Description: Gathers and structures the initial user query (symptoms, age, etc.)
             into a standardized format for the workflow.
 """
 from langchain_core.prompts import ChatPromptTemplate
+try:
+    from langchain.output_parsers import PydanticOutputParser
+except Exception:
+    from langchain_core.output_parsers import PydanticOutputParser
 from pydantic import BaseModel, Field
 from typing import List, Optional
 
@@ -42,7 +46,11 @@ ASSESSMENT_PROMPT = ChatPromptTemplate.from_messages(
             - Create a very brief, one-sentence summary of the core issue.
             
             If a piece of information (like age or duration) is not mentioned, leave it as null.
-            Focus ONLY on structuring the provided information.""",
+            Focus ONLY on structuring the provided information.
+            
+            Output format (must strictly follow):
+            {format_instructions}
+            """,
         ),
         (
             "human",
@@ -61,8 +69,9 @@ def get_initial_assessment_agent():
     structured assessment of their condition.
     """
     llm = get_llm()
-    structured_llm = llm.with_structured_output(StructuredAssessment)
-    agent = ASSESSMENT_PROMPT | structured_llm
+    parser = PydanticOutputParser(pydantic_object=StructuredAssessment)
+    prompt = ASSESSMENT_PROMPT.partial(format_instructions=parser.get_format_instructions())
+    agent = prompt | llm | parser
     return agent
 
 

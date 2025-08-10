@@ -4,6 +4,10 @@ Description: Takes the initial symptoms and retrieved knowledge to create a
             differential diagnosis (a list of possible conditions).
 """
 from langchain_core.prompts import ChatPromptTemplate
+try:
+    from langchain.output_parsers import PydanticOutputParser
+except Exception:
+    from langchain_core.output_parsers import PydanticOutputParser
 from pydantic import BaseModel, Field
 from typing import List
 
@@ -64,8 +68,9 @@ def get_hypothesis_generation_agent():
     and generates a differential diagnosis.
     """
     llm = get_llm()
-    structured_llm = llm.with_structured_output(DifferentialDiagnosis)
-    agent = HYPOTHESIS_PROMPT | structured_llm
+    parser = PydanticOutputParser(pydantic_object=DifferentialDiagnosis)
+    prompt = HYPOTHESIS_PROMPT.partial(format_instructions=parser.get_format_instructions())
+    agent = prompt | llm | parser
     return agent
 
 # --- Example Usage (for testing) ---
