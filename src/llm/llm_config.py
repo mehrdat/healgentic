@@ -75,11 +75,57 @@ def _install_structured_output(llm):
     return llm
 
 
+def _wrap_llm_for_messages(llm):
+    """Return a Runnable that coerces ChatMessages -> string for non-chat LLMs.
+
+    - Accepts str or List[BaseMessage]. If a list, join content with role tags.
+    - Preserves Runnable chaining semantics.
+    - Mirrors with_structured_output on the wrapper so legacy calls still work.
+    """
+    try:
+        from langchain_core.messages import BaseMessage
+    except Exception:
+        BaseMessage = None
+    from langchain_core.runnables import RunnableLambda
+
+    def preprocess(x):
+        try:
+            # If input is already a string, pass through
+            if isinstance(x, str):
+                return x
+            # If messages list, convert to a simple prompt
+            if BaseMessage is not None and isinstance(x, list) and all(hasattr(m, "content") for m in x):
+                parts = []
+                for m in x:
+                    role = getattr(m, "type", getattr(m, "role", ""))
+                    content = getattr(m, "content", "")
+                    parts.append(f"[{role}] {content}")
+                return "\n\n".join(parts)
+            # If dict-like, just stringify
+            return str(x)
+        except Exception:
+            return str(x)
+
+    wrapper = RunnableLambda(preprocess) | llm
+
+    # If underlying class has with_structured_output, reflect it on the wrapper too
+    if hasattr(llm.__class__, "with_structured_output"):
+        def _wrapper_with_structured(schema):
+            return RunnableLambda(preprocess) | llm.with_structured_output(schema)
+        try:
+            setattr(wrapper, "with_structured_output", _wrapper_with_structured)  # type: ignore[attr-defined]
+        except Exception:
+            pass
+
+    return wrapper
+
+
 def get_llm():
     """Initialize the LLM based on environment."""
     if is_huggingface_space():
         print("[LLM] Spaces detected: using local transformers model")
-        return _install_structured_output(get_local_pipeline_llm())
+        base = _install_structured_output(get_local_pipeline_llm())
+        return _wrap_llm_for_messages(base)
     else:
         print("[LLM] Local detected: using Google Gemini (if available)")
         return get_google_llm()
@@ -95,10 +141,12 @@ def get_google_llm():
             raise ValueError("Missing GOOGLE_API_KEY in environment")
         llm = ChatGoogleGenerativeAI(model=model_name, google_api_key=api_key, temperature=0.0, max_tokens=900)
         print("[LLM] Gemini initialized:", model_name)
-        return _install_structured_output(llm)
+        llm = _install_structured_output(llm)
+        return _wrap_llm_for_messages(llm)
     except Exception as e:
         print("[LLM] Gemini unavailable:", e, "— falling back to local HF pipeline")
-        return _install_structured_output(get_local_pipeline_llm())
+    base = _install_structured_output(get_local_pipeline_llm())
+    return _wrap_llm_for_messages(base)
 
 
 def get_huggingface_llm():
@@ -111,10 +159,12 @@ def get_huggingface_llm():
         model_name = "microsoft/DialoGPT-large"
         llm = HuggingFaceEndpoint(repo_id=model_name, temperature=0.1, max_new_tokens=512, repetition_penalty=1.1, return_full_text=False)
         print("[LLM] HF Endpoint initialized:", model_name)
-        return _install_structured_output(llm)
+        llm = _install_structured_output(llm)
+        return _wrap_llm_for_messages(llm)
     except Exception as e:
         print("[LLM] HF Endpoint failed:", e, "— using local HF pipeline")
-        return _install_structured_output(get_local_pipeline_llm())
+        base = _install_structured_output(get_local_pipeline_llm())
+        return _wrap_llm_for_messages(base)
 
 
 def get_local_pipeline_llm():

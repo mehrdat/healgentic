@@ -193,6 +193,9 @@ if user_input:
                 summary_lines.append(final.get("final_summary"))
             if summary_lines:
                 append_message("assistant", "\n\n".join(summary_lines))
+        elif isinstance(res, dict) and res.get("status") == "error":
+            append_message("assistant", f"Error: {res.get('error')}")
+            st.error(f"Diagnosis failed: {res.get('error')}")
         st.rerun()
     else:
         # Ongoing Q&A: treat input as answer to the pending question
