@@ -111,7 +111,12 @@ def get_huggingface_llm():
         return get_local_pipeline_llm()
 
 def get_local_pipeline_llm():
-    """Use a local transformers pipeline (free). Defaults to flan-t5-small for text2text-generation."""
+    """Use a local transformers pipeline (free).
+
+    Default model (overridable via HF_LOCAL_MODEL):
+    - Qwen/Qwen2.5-0.5B-Instruct (text-generation, capable and light enough for CPU)
+    Fallback: google/flan-t5-base (text2text-generation)
+    """
     try:
         from transformers import pipeline
         try:
@@ -120,20 +125,34 @@ def get_local_pipeline_llm():
         except Exception:
             from langchain.llms import HuggingFacePipeline  # fallback
 
-        # Allow override via env; default to a small, free model
-        model_name = os.getenv("HF_LOCAL_MODEL", "google/flan-t5-small")
+        # Allow override via env; default to a small, free, instruct model
+        model_name = os.getenv("HF_LOCAL_MODEL", "Qwen/Qwen2.5-0.5B-Instruct")
 
         # Choose task based on model family (simple heuristic)
         task = "text2text-generation" if any(k in model_name.lower() for k in ["t5", "flan"]) else "text-generation"
 
-        pipe = pipeline(
-            task,
-            model=model_name,
-            max_new_tokens=256,
-            temperature=0.1,
-            do_sample=False,
-            repetition_penalty=1.05,
-        )
+        try:
+            pipe = pipeline(
+                task,
+                model=model_name,
+                max_new_tokens=384,
+                temperature=0.1,
+                do_sample=False,
+                repetition_penalty=1.05,
+            )
+        except Exception as e:
+            # Fallback to flan-t5-base if primary model cannot load on the Space
+            fallback = "google/flan-t5-base"
+            task = "text2text-generation"
+            print(f"⚠️ Failed to load {model_name}: {e}. Falling back to {fallback} ({task})")
+            pipe = pipeline(
+                task,
+                model=fallback,
+                max_new_tokens=256,
+                temperature=0.1,
+                do_sample=False,
+                repetition_penalty=1.05,
+            )
 
         llm = HuggingFacePipeline(pipeline=pipe)
         print(f"✅ Initialized local transformers pipeline: {model_name} ({task})")
