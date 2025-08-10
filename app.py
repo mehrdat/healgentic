@@ -2,7 +2,13 @@ import os
 import shutil
 from pathlib import Path
 import sys
+from io import BytesIO
 import streamlit as st
+
+try:
+    from docx import Document  # python-docx
+except Exception:
+    Document = None
 
 # Ensure we can import from src/ as a package
 sys.path.insert(0, str(Path(__file__).parent))
@@ -34,7 +40,12 @@ def load_vector_store_from_hf(repo_id: str, subfolder=None, repo_type=None) -> s
         raise RuntimeError(f"huggingface_hub not available: {e}")
 
     # Token (optional for public repos)
-    token = os.getenv("HUGGING_FACE_HUB_TOKEN") or os.getenv("HUGGINGFACEHUB_API_TOKEN") or os.getenv("HF_TOKEN")
+    token = (
+        os.getenv("HUGGING_FACE_HUB_TOKEN")
+        or os.getenv("HUGGINGFACEHUB_API_TOKEN")
+        or os.getenv("HF_TOKEN")
+        or os.getenv("HF_API_HEY")  # custom secret name
+    )
     if token:
         try:
             login(token=token)
@@ -75,6 +86,25 @@ with st.sidebar:
         st.session_state.chat_history = []
         st.rerun()
 
+    # Patient info (collapsible, not always on screen)
+    st.divider()
+    with st.expander("👤 Patient Information"):
+        pi = st.session_state.get("patient_info") or {}
+        age = st.number_input("Age", min_value=0, max_value=130, value=int(pi.get("age", 30)))
+        gender = st.selectbox("Gender", ["Not specified", "Male", "Female", "Other"], index=["Not specified", "Male", "Female", "Other"].index(pi.get("gender", "Not specified")))
+        med_hist = st.text_area("Medical History", value=pi.get("medical_history", ""), height=100)
+        meds = st.text_area("Current Medications", value=pi.get("medications", ""), height=80)
+        allergies = st.text_input("Allergies", value=pi.get("allergies", ""))
+        if st.button("Save Patient Info", use_container_width=True):
+            st.session_state.patient_info = {
+                "age": age,
+                "gender": gender,
+                "medical_history": med_hist,
+                "medications": meds,
+                "allergies": allergies,
+            }
+            st.success("Saved.")
+
     st.divider()
     with st.expander("Advanced: Sync vector store from Hugging Face"):
         st.caption("Use this if you want to download a prebuilt FAISS index from your HF repo. If your database is already in /data/vector_store, you can ignore this.")
@@ -105,8 +135,8 @@ with st.sidebar:
     # Inline controls are rendered next to the chat when needed
 
 
-# Patient info will be collected through Q&A dynamically
-patient = {}
+# Patient info will be used if provided
+patient = st.session_state.get("patient_info") or {}
 
 
 # Diagnosis chat (full conversation view)
@@ -119,6 +149,10 @@ if "last_question_id" not in st.session_state:
     st.session_state.last_question_id = None
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []  # list of {role: "user"|"assistant", content: str}
+if "patient_info" not in st.session_state:
+    st.session_state.patient_info = {}
+if "show_patient_form" not in st.session_state:
+    st.session_state.show_patient_form = False
 
 # Render chat history
 for msg in st.session_state.chat_history:
@@ -199,7 +233,40 @@ colA, colB = st.columns([1, 1])
 with colA:
     st.caption("Use the chat to converse with the AI. It will ask follow-up questions.")
 with colB:
-    st.empty()
+    if st.button("Edit patient info", use_container_width=True):
+        st.session_state.show_patient_form = True
+        st.rerun()
+
+# Inline optional Patient Information (shown only when needed)
+if st.session_state.show_patient_form or not st.session_state.patient_info:
+    with st.container(border=True):
+        st.markdown("**👤 Patient Information (optional)**")
+        pi = st.session_state.patient_info or {}
+        col1, col2 = st.columns(2)
+        with col1:
+            age = st.number_input("Age", min_value=0, max_value=130, value=int(pi.get("age", 30)), key="pi_age")
+            gender = st.selectbox("Gender", ["Not specified", "Male", "Female", "Other"], index=["Not specified", "Male", "Female", "Other"].index(pi.get("gender", "Not specified")), key="pi_gender")
+        with col2:
+            med_hist = st.text_area("Medical history", value=pi.get("medical_history", ""), height=80, key="pi_history")
+            meds = st.text_area("Current medications", value=pi.get("medications", ""), height=60, key="pi_meds")
+            allergies = st.text_input("Allergies", value=pi.get("allergies", ""), key="pi_allergies")
+        c1, c2 = st.columns([1, 1])
+        with c1:
+            if st.button("Save", use_container_width=True):
+                st.session_state.patient_info = {
+                    "age": age,
+                    "gender": gender,
+                    "medical_history": med_hist,
+                    "medications": meds,
+                    "allergies": allergies,
+                }
+                st.session_state.show_patient_form = False
+                st.success("Saved.")
+                st.rerun()
+        with c2:
+            if st.button("Skip for now", use_container_width=True):
+                st.session_state.show_patient_form = False
+                st.rerun()
 
 # Inline structured controls for the current question (context-aware UI)
 state_now = st.session_state.get("diag_state")
@@ -310,19 +377,94 @@ def render_results(state_dict: dict):
     with c2:
         st.metric("Confidence", f"{int(state_dict.get('confidence_score', 0.0)*100)}%")
 
-    if meds_section:
+    # Medications comparison table (if provided by agent)
+    meds_table = state_dict.get("medications", {}).get("options") or state_dict.get("medications", {}).get("suggestions")
+    if isinstance(meds_table, list) and meds_table and isinstance(meds_table[0], dict) and "name" in meds_table[0]:
+        st.markdown("#### 💊 Medications (ranked)")
+        import pandas as pd
+        df = pd.DataFrame([
+            {
+                "Rank": m.get("ranking"),
+                "Name": m.get("name"),
+                "Family": m.get("family"),
+                "Best dose": m.get("best_dose"),
+                "OTC/Rx": m.get("otc_or_rx"),
+                "Other uses": ", ".join(m.get("other_uses", [])[:4]),
+                "One-line": m.get("one_line"),
+                "_details": m.get("details"),
+            }
+            for m in meds_table
+        ]).sort_values(by=["Rank", "Name"], na_position="last")
+        # Keep details out of main display; use index to show on demand
+        show_df = df.drop(columns=["_details"]) if "_details" in df.columns else df
+        st.dataframe(show_df, use_container_width=True, hide_index=True)
+
+        # Per-row detail toggles (compact)
+        for i, row in df.iterrows():
+            if row.get("_details"):
+                with st.expander(f"Details: {row['Name']}"):
+                    st.write(row["_details"])
+
+    # General suggestions as concise bullets (if present)
+    if meds_section and (not (isinstance(meds_table, list) and meds_table and isinstance(meds_table[0], dict) and "name" in meds_table[0])):
         st.markdown("#### 💊 Options")
         for m in meds_section[:8]:
             s = (m or {}).get("suggestion")
             if not s:
                 continue
             one_line = _short_explainer(s)
-            with st.container(border=True):
-                st.markdown(f"**{s}**  ")
-                st.caption(one_line)
-                details = (m or {}).get("details") or (m or {}).get("reasoning")
-                with st.expander("Why this?"):
-                    st.write(details or "Targets reflux/heartburn mechanisms.")
+            st.markdown(f"- **{s}** — {one_line}")
+
+    # Export buttons
+    st.markdown("---")
+    colA, colB = st.columns([1, 1])
+    # Build markdown export
+    pdx = final.get("primary_diagnosis", "Unknown")
+    md_lines = [
+        f"# Diagnosis\n\n**Primary:** {pdx}",
+        f"**Confidence:** {int(state_dict.get('confidence_score', 0.0)*100)}%",
+    ]
+    if final.get("final_summary"):
+        md_lines.append(f"\n{final.get('final_summary')}")
+    if isinstance(meds_table, list) and meds_table and isinstance(meds_table[0], dict) and "name" in meds_table[0]:
+        md_lines.append("\n## Medications (ranked)")
+        for m in meds_table:
+            md_lines.append(f"- {m.get('ranking')}. {m.get('name')} ({m.get('family')}), dose: {m.get('best_dose')} — {m.get('one_line')}")
+    elif meds_section:
+        md_lines.append("\n## Options")
+        for m in meds_section[:8]:
+            s = (m or {}).get("suggestion")
+            if s:
+                md_lines.append(f"- {s}")
+    md_content = "\n".join(md_lines)
+    with colA:
+        st.download_button("Download Markdown", data=md_content.encode("utf-8"), file_name="diagnosis.md", mime="text/markdown")
+    with colB:
+        if Document is not None:
+            try:
+                buf = BytesIO()
+                doc = Document()
+                doc.add_heading("Diagnosis", level=1)
+                doc.add_paragraph(f"Primary: {pdx}")
+                doc.add_paragraph(f"Confidence: {int(state_dict.get('confidence_score', 0.0)*100)}%")
+                if final.get("final_summary"):
+                    doc.add_paragraph(final.get("final_summary"))
+                if isinstance(meds_table, list) and meds_table and isinstance(meds_table[0], dict) and "name" in meds_table[0]:
+                    doc.add_heading("Medications (ranked)", level=2)
+                    for m in meds_table:
+                        doc.add_paragraph(f"{m.get('ranking')}. {m.get('name')} ({m.get('family')}) — dose: {m.get('best_dose')}\n{m.get('one_line')}")
+                        if m.get("details"):
+                            doc.add_paragraph(m.get("details"))
+                elif meds_section:
+                    doc.add_heading("Options", level=2)
+                    for m in meds_section[:8]:
+                        s = (m or {}).get("suggestion")
+                        if s:
+                            doc.add_paragraph(s)
+                doc.save(buf)
+                st.download_button("Download DOCX", data=buf.getvalue(), file_name="diagnosis.docx", mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+            except Exception as e:
+                st.caption(f"DOCX export unavailable: {e}")
 
 # Auto-render results if available
 render_results(st.session_state.get("diag_state"))
