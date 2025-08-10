@@ -27,7 +27,11 @@ def is_huggingface_space() -> bool:
 
 
 def _install_structured_output(llm):
-    """Monkeypatch llm.with_structured_output(schema) while keeping llm Runnable-compatible."""
+    """Add with_structured_output(schema) to the LLM's class so instances remain Runnable.
+
+    This avoids setting attributes on Pydantic BaseModel instances (like HuggingFacePipeline),
+    which disallow new fields. Adding to the class is allowed and affects all instances safely.
+    """
     try:
         from langchain_core.output_parsers import PydanticOutputParser
     except Exception:
@@ -39,7 +43,7 @@ def _install_structured_output(llm):
         HumanMessage = None
     from langchain_core.runnables import RunnableLambda
 
-    def _with_structured_output(schema):
+    def _with_structured_output(self, schema):
         parser = PydanticOutputParser(pydantic_object=schema)
         fmt = parser.get_format_instructions()
 
@@ -59,10 +63,15 @@ def _install_structured_output(llm):
             prefix = "Output format (must strictly follow):\n" + fmt + "\n\n"
             return prefix + (x if isinstance(x, str) else str(x))
 
-        return RunnableLambda(_prepend_instructions) | llm | parser
+        return RunnableLambda(_prepend_instructions) | self | parser
 
-    # Attach method
-    setattr(llm, "with_structured_output", _with_structured_output)
+    cls = llm.__class__
+    if not hasattr(cls, "with_structured_output"):
+        try:
+            setattr(cls, "with_structured_output", _with_structured_output)
+        except Exception:
+            # If class assignment somehow fails, just return llm without installing.
+            pass
     return llm
 
 
