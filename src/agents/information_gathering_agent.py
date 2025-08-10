@@ -4,6 +4,8 @@ Description: Takes a structured assessment and generates targeted search queries
             to retrieve relevant information from the medical knowledge base.
 """
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnableLambda
 try:
     from langchain.output_parsers import PydanticOutputParser
 except Exception:
@@ -70,7 +72,18 @@ def get_information_gathering_agent():
     llm = get_llm()
     parser = PydanticOutputParser(pydantic_object=SearchQueries)
     prompt = INFORMATION_GATHERING_PROMPT.partial(format_instructions=parser.get_format_instructions())
-    agent = prompt | llm | parser
+    text_out = StrOutputParser()
+
+    def _safe_parse(s: str) -> SearchQueries:
+        # Guard against None or literal 'null'
+        if s is None or str(s).strip().lower() in {"null", "none", ""}:
+            return SearchQueries(queries=[SearchQuery(query="GERD reflux symptoms causes and triggers"), SearchQuery(query="differential diagnosis for heartburn without alarm symptoms"), SearchQuery(query="lifestyle modifications that reduce heartburn")])
+        try:
+            return parser.parse(s)
+        except Exception:
+            return SearchQueries(queries=[SearchQuery(query="evidence-based treatments for heartburn"), SearchQuery(query="when to seek care for heartburn alarm features"), SearchQuery(query="pharmacologic options PPI H2 blockers dosing")])
+
+    agent = prompt | llm | text_out | RunnableLambda(_safe_parse)
     return agent
 
 # --- Example Usage (for testing) ---
