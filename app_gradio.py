@@ -5,7 +5,7 @@ import json
 import hashlib
 
 # Add the src directory to the path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+sys.path.insert(0, str((Path(__file__).parent / "src").resolve()))
 
 # Import the medical diagnosis system
 try:
@@ -56,98 +56,66 @@ class GradioMedicalApp:
         self.diagnosis_state = None
         self.current_question = None
         self.diagnosis_started = False
-        self.chat_history = []
+        self.chat_history = []  # list[{"role","content"}]
         self.patient_info = {}
-        
+
     def initialize_system(self):
-        """Initialize the medical diagnosis system"""
         try:
             if self.system is None:
                 self.system = MedicalDiagnosisSystem()
             return "✅ Medical Diagnosis System initialized successfully!"
         except Exception as e:
             return f"❌ Error initializing system: {str(e)}"
-    
+
     def generate_contextual_response(self, diagnosis_state, current_question):
-        """Generate a contextual response based on current diagnosis state and question"""
-        # Get current differential diagnosis
         differential = diagnosis_state.get("differential_diagnosis", {})
         hypotheses = differential.get("hypotheses", [])
-        # Understand question focus
-        question_text = current_question.get("text", "").lower()
-        # Generate contextual responses based on top hypotheses and question type
+        qt = (current_question.get("text") or "").lower()
+        responses = []
         if hypotheses:
-            top_condition = hypotheses[0].get("condition", "")
-            if any(word in question_text for word in ["pain", "severity", "scale", "rate"]):
+            top = hypotheses[0].get("condition", "")
+            if any(w in qt for w in ["pain", "severity", "scale", "rate"]):
                 responses = [
-                    f"I'm thinking this could be {top_condition}. The severity will help me confirm this.",
-                    f"Based on your symptoms, {top_condition} is possible. Let me check the intensity.",
-                    f"The pain level will help distinguish between {top_condition} and other conditions.",
-                    f"I need to understand how severe this is to narrow down from {top_condition}.",
+                    f"I'm thinking this could be {top}. The severity will help me confirm this.",
+                    f"Based on your symptoms, {top} is possible. Let me check the intensity.",
+                    f"The pain level will help distinguish between {top} and other conditions.",
+                    f"I need to understand how severe this is to narrow down from {top}.",
                 ]
-            elif any(word in question_text for word in ["when", "time", "duration", "long", "started"]):
+            elif any(w in qt for w in ["when", "time", "duration", "long", "started"]):
                 responses = [
-                    f"The timing could help confirm if this is {top_condition}.",
-                    f"I'm considering {top_condition} - the timeline will be revealing.",
-                    f"When symptoms started matters for distinguishing {top_condition} from other causes.",
-                    f"The duration pattern could point to {top_condition} or rule it out.",
+                    f"The timing could help confirm if this is {top}.",
+                    f"I'm considering {top} - the timeline will be revealing.",
+                    f"When symptoms started matters for distinguishing {top} from other causes.",
+                    f"The duration pattern could point to {top} or rule it out.",
                 ]
-            elif any(word in question_text for word in ["where", "location", "area", "side", "part"]):
+            elif any(w in qt for w in ["where", "location", "area", "side", "part"]):
                 responses = [
-                    f"The exact location will help me determine if this fits {top_condition}.",
-                    f"I'm leaning toward {top_condition}, but need to confirm the affected area.",
-                    f"Location is key - {top_condition} has a typical pattern.",
-                    f"Where you feel this could confirm my suspicion of {top_condition}.",
-                ]
-            elif any(word in question_text for word in ["other", "additional", "along", "associated", "also"]):
-                responses = [
-                    f"I'm checking for other signs that would support {top_condition}.",
-                    f"These additional symptoms could confirm {top_condition}.",
-                    f"Looking for the complete picture - {top_condition} often has related symptoms.",
-                    f"Other symptoms will help me distinguish {top_condition} from similar conditions.",
-                ]
-            elif any(word in question_text for word in ["trigger", "cause", "worse", "better", "aggravate"]):
-                responses = [
-                    f"Understanding triggers will help confirm if this is {top_condition}.",
-                    f"What makes it worse could point to {top_condition} specifically.",
-                    f"I'm exploring if the pattern matches {top_condition}.",
-                    f"Triggers are diagnostic clues for {top_condition}.",
-                ]
-            elif any(word in question_text for word in ["history", "before", "previous", "past", "family"]):
-                responses = [
-                    f"Your medical background could explain why {top_condition} developed.",
-                    f"Past history might connect to {top_condition} or suggest alternatives.",
-                    f"I'm checking if your history supports the {top_condition} diagnosis.",
-                    f"Previous conditions could be linked to {top_condition}.",
+                    f"The exact location will help me determine if this fits {top}.",
+                    f"I'm leaning toward {top}, but need to confirm the affected area.",
+                    f"Location is key - {top} has a typical pattern.",
+                    f"Where you feel this could confirm my suspicion of {top}.",
                 ]
             else:
                 responses = [
-                    f"This will help me determine if {top_condition} is the right diagnosis.",
-                    f"I'm investigating whether this fits the {top_condition} pattern.",
-                    f"This question will help narrow down from {top_condition} to the exact cause.",
-                    f"I need this detail to confirm my thinking about {top_condition}.",
-                    f"This could be the key to confirming {top_condition}.",
+                    f"This will help me determine if {top} is the right diagnosis.",
+                    f"I'm investigating whether this fits the {top} pattern.",
+                    f"This question will help narrow down from {top} to the exact cause.",
+                    f"I need this detail to confirm my thinking about {top}.",
                 ]
             if len(hypotheses) > 1:
-                second_condition = hypotheses[1].get("condition", "")
+                second = hypotheses[1].get("condition", "")
                 responses.extend([
-                    f"I'm deciding between {top_condition} and {second_condition}.",
-                    f"This will help me choose between {top_condition} or {second_condition}.",
-                    f"Could be {top_condition}, but {second_condition} is also possible.",
-                    f"I'm narrowing down from {top_condition} and {second_condition}.",
+                    f"I'm deciding between {top} and {second}.",
+                    f"This will help me choose between {top} or {second}.",
                 ])
         else:
             responses = [
                 "This detail will help me understand what's happening.",
                 "I'm gathering information to identify the underlying cause.",
-                "This will help me narrow down the possibilities.",
-                "I need this to build a clearer picture.",
-                "This information is important for the diagnosis.",
             ]
-        question_id = current_question.get("id", "default")
-        hash_val = int(hashlib.md5(question_id.encode()).hexdigest(), 16)
-        selected_response = responses[hash_val % len(responses)]
-        return selected_response
+        qid = current_question.get("id", "default")
+        idx = int(hashlib.md5(qid.encode()).hexdigest(), 16) % len(responses)
+        return responses[idx]
 
     def filter_treatment_suggestions(self, suggestions):
         """Filter out repetitive, obvious, or overly generic treatment suggestions"""
@@ -196,174 +164,176 @@ class GradioMedicalApp:
         }
         return f"✅ Patient information saved: {age} year old {gender}"
 
-    def start_diagnosis(self, symptoms, history):
+    def start_diagnosis(self, symptoms, messages):
         """Start the diagnosis process"""
         if not self.system:
-            return history + [["Error", "Please initialize the system first"]], "", gr.update(visible=False), ""
-        
+            messages = messages or []
+            messages.append({"role": "assistant", "content": "Please initialize the system first"})
+            return gr.update(value=messages), "", gr.update(visible=False), ""
+
         if not symptoms.strip():
-            return history + [["Error", "Please describe your symptoms"]], "", gr.update(visible=False), ""
-        
+            messages = messages or []
+            messages.append({"role": "assistant", "content": "Please describe your symptoms"})
+            return gr.update(value=messages), "", gr.update(visible=False), ""
+
         if not self.patient_info:
-            return history + [["Error", "Please fill out patient information first"]], "", gr.update(visible=False), ""
-        
-        # Add user message to history
-        history.append([symptoms, None])
-        
+            messages = messages or []
+            messages.append({"role": "assistant", "content": "Please fill out patient information first"})
+            return gr.update(value=messages), "", gr.update(visible=False), ""
+
+        # Add user message
+        messages = messages or []
+        messages.append({"role": "user", "content": symptoms})
+
         try:
             # Start interactive diagnosis
-            result = self.system.workflow.start_interactive_diagnosis(
-                symptoms, self.patient_info
-            )
-            
-            if result["status"] == "question_pending":
-                self.current_question = result["question"]
-                self.diagnosis_state = result["state"]
+            result = self.system.workflow.start_interactive_diagnosis(symptoms, self.patient_info)
+
+            status = result.get("status")
+            if status == "question_pending":
+                self.current_question = result.get("question")
+                self.diagnosis_state = result.get("state")
                 self.diagnosis_started = True
-                
+
                 # Add assistant response
-                history.append([None, "I've analyzed your symptoms. To provide an accurate diagnosis, I need to ask you some specific questions."])
-                
-                # Show the question interface
-                question_text = self.current_question.get("text", "")
-                
-                return history, "", self.create_question_interface(self.current_question), question_text
-                
-            elif result["status"] == "diagnosis_complete":
-                # Format diagnosis results
+                messages.append({
+                    "role": "assistant",
+                    "content": (
+                        "I've analyzed your symptoms. To provide an accurate diagnosis, "
+                        "I need to ask you some specific questions."
+                    ),
+                })
+
+                question_text = (self.current_question or {}).get("text", "")
+                return gr.update(value=messages), "", self.create_question_interface(self.current_question), question_text
+
+            elif status == "diagnosis_complete":
                 diagnosis_text = self.format_diagnosis_results(result)
-                history.append([None, diagnosis_text])
-                
+                messages.append({"role": "assistant", "content": diagnosis_text})
+
                 # Reset state
                 self.current_question = None
                 self.diagnosis_state = None
                 self.diagnosis_started = False
-                
-                return history, "", gr.update(visible=False), ""
-        
+
+                return gr.update(value=messages), "", gr.update(visible=False), ""
+
         except Exception as e:
             error_msg = f"❌ Error starting diagnosis: {str(e)}"
-            history.append([None, error_msg])
-            return history, "", gr.update(visible=False), ""
-        
-        return history, "", gr.update(visible=False), ""
+            messages.append({"role": "assistant", "content": error_msg})
+            return gr.update(value=messages), "", gr.update(visible=False), ""
+
+        # Fallback
+        return gr.update(value=messages), "", gr.update(visible=False), ""
 
     def create_question_interface(self, question):
         """Create the appropriate interface for the question type"""
         # Always use a Textbox-compatible update to avoid schema mismatches
-    # Keep label generic; show hint via placeholder
         placeholder = "Type your answer here"
-        if question.get("type") in ("select", "radio", "multiselect"):
-            opts = question.get("options", [])
+        if (question or {}).get("type") in ("select", "radio", "multiselect"):
+            opts = (question or {}).get("options", [])
             if opts:
-                # Append options hint into the input label for clarity
                 placeholder = f"Options: {', '.join(map(str, opts))}"
         return gr.update(visible=True, label="Your answer", value="", placeholder=placeholder)
 
-    def answer_question(self, answer, history):
+    def answer_question(self, answer, messages):
         """Process the answer to current question"""
         if not self.current_question or not self.system:
-            return history, gr.update(visible=False), ""
-        
+            return gr.update(), gr.update(visible=False), ""
+
         if answer is None or (isinstance(answer, str) and not answer.strip()):
-            return history + [[None, "Please provide an answer before submitting."]], gr.update(visible=False), ""
-        
+            messages = messages or []
+            messages.append({"role": "assistant", "content": "Please provide an answer before submitting."})
+            return gr.update(value=messages), gr.update(visible=False), ""
+
         try:
             # Process the answer
-            question_id = self.current_question.get("id", "")
-            result = self.system.workflow.answer_question(
-                question_id, answer, self.diagnosis_state
-            )
-            
+            question_id = (self.current_question or {}).get("id", "")
+            result = self.system.workflow.answer_question(question_id, answer, self.diagnosis_state)
+
             # Add answer to chat history
-            question_text = self.current_question.get('text', '')
-            history.append([f"{question_text}: {answer}", None])
-            
-            if result["status"] == "question_pending":
+            question_text = (self.current_question or {}).get("text", "")
+            messages = messages or []
+            messages.append({"role": "user", "content": f"{question_text}: {answer}"})
+
+            status = result.get("status")
+            if status == "question_pending":
                 # More questions needed
-                self.current_question = result["question"]
-                self.diagnosis_state = result["state"]
-                
+                self.current_question = result.get("question")
+                self.diagnosis_state = result.get("state")
+
                 # Generate contextual response
-                contextual_message = self.generate_contextual_response(
-                    self.diagnosis_state, 
-                    result["question"]
-                )
-                
-                history.append([None, contextual_message])
-                
+                contextual_message = self.generate_contextual_response(self.diagnosis_state, self.current_question)
+                messages.append({"role": "assistant", "content": contextual_message})
+
                 # Show next question
-                question_text = self.current_question.get("text", "")
-                return history, self.create_question_interface(self.current_question), question_text
-                
-            elif result["status"] == "diagnosis_complete":
+                question_text = (self.current_question or {}).get("text", "")
+                return gr.update(value=messages), self.create_question_interface(self.current_question), question_text
+
+            elif status == "diagnosis_complete":
                 # Diagnosis complete
                 self.current_question = None
                 self.diagnosis_state = None
                 self.diagnosis_started = False
-                
+
                 # Display comprehensive diagnosis results
                 diagnosis_text = self.format_diagnosis_results(result)
-                history.append([None, diagnosis_text])
-                
-                return history, gr.update(visible=False), ""
-        
+                messages.append({"role": "assistant", "content": diagnosis_text})
+
+                return gr.update(value=messages), gr.update(visible=False), ""
+
         except Exception as e:
             error_msg = f"❌ Error processing answer: {str(e)}"
-            history.append([None, error_msg])
-            return history, gr.update(visible=False), ""
-        
-        return history, gr.update(visible=False), ""
+            messages = messages or []
+            messages.append({"role": "assistant", "content": error_msg})
+            return gr.update(value=messages), gr.update(visible=False), ""
 
-    def skip_question(self, history):
+        # Fallback
+        return gr.update(value=messages), gr.update(visible=False), ""
+
+    def skip_question(self, messages):
         """Skip the current question"""
         if not self.current_question or not self.system:
-            return history, gr.update(visible=False), ""
-        
+            return gr.update(), gr.update(visible=False), ""
+
         try:
-            question_id = self.current_question.get("id", "")
-            result = self.system.workflow.answer_question(
-                question_id, "Not provided", self.diagnosis_state
-            )
-            
+            question_id = (self.current_question or {}).get("id", "")
+            result = self.system.workflow.answer_question(question_id, "Not provided", self.diagnosis_state)
+
             # Add skip to chat history
-            question_text = self.current_question.get('text', '')
-            history.append([f"{question_text}: Skipped", None])
-            
-            if result["status"] == "question_pending":
-                self.current_question = result["question"]
-                self.diagnosis_state = result["state"]
-                
-                # Generate contextual response
-                contextual_message = self.generate_contextual_response(
-                    self.diagnosis_state, 
-                    result["question"]
-                )
-                
-                history.append([None, f"That's okay. {contextual_message}"])
-                
-                # Show next question
-                question_text = self.current_question.get("text", "")
-                return history, self.create_question_interface(self.current_question), question_text
-                
-            elif result["status"] == "diagnosis_complete":
-                # Diagnosis complete
+            question_text = (self.current_question or {}).get("text", "")
+            messages = messages or []
+            messages.append({"role": "user", "content": f"{question_text}: Skipped"})
+
+            status = result.get("status")
+            if status == "question_pending":
+                self.current_question = result.get("question")
+                self.diagnosis_state = result.get("state")
+
+                contextual_message = self.generate_contextual_response(self.diagnosis_state, self.current_question)
+                messages.append({"role": "assistant", "content": f"That's okay. {contextual_message}"})
+
+                question_text = (self.current_question or {}).get("text", "")
+                return gr.update(value=messages), self.create_question_interface(self.current_question), question_text
+
+            elif status == "diagnosis_complete":
                 self.current_question = None
                 self.diagnosis_state = None
                 self.diagnosis_started = False
-                
-                # Display diagnosis results
+
                 diagnosis_text = self.format_diagnosis_results(result)
-                history.append([None, diagnosis_text])
-                
-                return history, gr.update(visible=False), ""
-        
+                messages.append({"role": "assistant", "content": diagnosis_text})
+
+                return gr.update(value=messages), gr.update(visible=False), ""
+
         except Exception as e:
             error_msg = f"❌ Error skipping question: {str(e)}"
-            history.append([None, error_msg])
-            return history, gr.update(visible=False), ""
-        
-        return history, gr.update(visible=False), ""
+            messages = messages or []
+            messages.append({"role": "assistant", "content": error_msg})
+            return gr.update(value=messages), gr.update(visible=False), ""
+
+        # Fallback
+        return gr.update(value=messages), gr.update(visible=False), ""
 
     def format_diagnosis_results(self, result):
         """Format the diagnosis results for display"""
@@ -464,7 +434,8 @@ def create_app():
                 chatbot = gr.Chatbot(
                     label="Medical Consultation",
                     height=400,
-                    show_label=True
+                    show_label=True,
+                    type="messages"
                 )
                 
                 # Question area
