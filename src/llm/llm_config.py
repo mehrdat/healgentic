@@ -11,6 +11,9 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
+# Internal singleton cache for the LLM so we don't re-load weights every call
+_LLM_SINGLETON = None  # type: ignore
+
 # Disable LangSmith warnings and tracing
 os.environ["LANGCHAIN_TRACING_V2"] = "false"
 os.environ["LANGCHAIN_TRACING"] = "false"
@@ -120,15 +123,34 @@ def _wrap_llm_for_messages(llm):
     return wrapper
 
 
+def reset_llm_cache():
+    """Reset the cached LLM instance (next get_llm() call will rebuild)."""
+    global _LLM_SINGLETON
+    _LLM_SINGLETON = None
+
+
 def get_llm():
-    """Initialize the LLM based on environment."""
+    """Return a cached LLM instance.
+
+    Caching avoids reinitializing / re-downloading the transformers pipeline on every
+    agent call (a major source of latency on CPU Spaces). Set env LLM_DISABLE_CACHE=1
+    to force rebuilding each call (for debugging/model switching).
+    """
+    global _LLM_SINGLETON
+    if os.getenv("LLM_DISABLE_CACHE"):
+        print("[LLM] Cache disabled via LLM_DISABLE_CACHE – rebuilding")
+        reset_llm_cache()
+    if _LLM_SINGLETON is not None:
+        return _LLM_SINGLETON
+
     if is_huggingface_space():
-        print("[LLM] Spaces detected: using local transformers model")
+        print("[LLM] Spaces detected: building local transformers model (cold start)")
         base = _install_structured_output(get_local_pipeline_llm())
-        return _wrap_llm_for_messages(base)
+        _LLM_SINGLETON = _wrap_llm_for_messages(base)
     else:
-        print("[LLM] Local detected: using Google Gemini (if available)")
-        return get_google_llm()
+        print("[LLM] Local detected: attempting Gemini then HF fallback (cold start)")
+        _LLM_SINGLETON = get_google_llm()
+    return _LLM_SINGLETON
 
 
 def get_google_llm():
