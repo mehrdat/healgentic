@@ -70,19 +70,14 @@ class GradioMedicalApp:
     
     def generate_contextual_response(self, diagnosis_state, current_question):
         """Generate a contextual response based on current diagnosis state and question"""
-        
         # Get current differential diagnosis
         differential = diagnosis_state.get("differential_diagnosis", {})
         hypotheses = differential.get("hypotheses", [])
-        
-        # Get the current question to understand what we're investigating
+        # Understand question focus
         question_text = current_question.get("text", "").lower()
-        
         # Generate contextual responses based on top hypotheses and question type
         if hypotheses:
             top_condition = hypotheses[0].get("condition", "")
-            
-            # Pain/severity related questions
             if any(word in question_text for word in ["pain", "severity", "scale", "rate"]):
                 responses = [
                     f"I'm thinking this could be {top_condition}. The severity will help me confirm this.",
@@ -90,8 +85,6 @@ class GradioMedicalApp:
                     f"The pain level will help distinguish between {top_condition} and other conditions.",
                     f"I need to understand how severe this is to narrow down from {top_condition}.",
                 ]
-            
-            # Timing/duration questions
             elif any(word in question_text for word in ["when", "time", "duration", "long", "started"]):
                 responses = [
                     f"The timing could help confirm if this is {top_condition}.",
@@ -99,8 +92,6 @@ class GradioMedicalApp:
                     f"When symptoms started matters for distinguishing {top_condition} from other causes.",
                     f"The duration pattern could point to {top_condition} or rule it out.",
                 ]
-            
-            # Location/area questions
             elif any(word in question_text for word in ["where", "location", "area", "side", "part"]):
                 responses = [
                     f"The exact location will help me determine if this fits {top_condition}.",
@@ -108,8 +99,27 @@ class GradioMedicalApp:
                     f"Location is key - {top_condition} has a typical pattern.",
                     f"Where you feel this could confirm my suspicion of {top_condition}.",
                 ]
-            
-            # Default responses
+            elif any(word in question_text for word in ["other", "additional", "along", "associated", "also"]):
+                responses = [
+                    f"I'm checking for other signs that would support {top_condition}.",
+                    f"These additional symptoms could confirm {top_condition}.",
+                    f"Looking for the complete picture - {top_condition} often has related symptoms.",
+                    f"Other symptoms will help me distinguish {top_condition} from similar conditions.",
+                ]
+            elif any(word in question_text for word in ["trigger", "cause", "worse", "better", "aggravate"]):
+                responses = [
+                    f"Understanding triggers will help confirm if this is {top_condition}.",
+                    f"What makes it worse could point to {top_condition} specifically.",
+                    f"I'm exploring if the pattern matches {top_condition}.",
+                    f"Triggers are diagnostic clues for {top_condition}.",
+                ]
+            elif any(word in question_text for word in ["history", "before", "previous", "past", "family"]):
+                responses = [
+                    f"Your medical background could explain why {top_condition} developed.",
+                    f"Past history might connect to {top_condition} or suggest alternatives.",
+                    f"I'm checking if your history supports the {top_condition} diagnosis.",
+                    f"Previous conditions could be linked to {top_condition}.",
+                ]
             else:
                 responses = [
                     f"This will help me determine if {top_condition} is the right diagnosis.",
@@ -118,20 +128,15 @@ class GradioMedicalApp:
                     f"I need this detail to confirm my thinking about {top_condition}.",
                     f"This could be the key to confirming {top_condition}.",
                 ]
-            
-            # Add some variety with multiple conditions if available
             if len(hypotheses) > 1:
                 second_condition = hypotheses[1].get("condition", "")
-                additional_responses = [
+                responses.extend([
                     f"I'm deciding between {top_condition} and {second_condition}.",
                     f"This will help me choose between {top_condition} or {second_condition}.",
                     f"Could be {top_condition}, but {second_condition} is also possible.",
                     f"I'm narrowing down from {top_condition} and {second_condition}.",
-                ]
-                responses.extend(additional_responses)
-        
+                ])
         else:
-            # Fallback responses when no hypotheses available
             responses = [
                 "This detail will help me understand what's happening.",
                 "I'm gathering information to identify the underlying cause.",
@@ -139,12 +144,9 @@ class GradioMedicalApp:
                 "I need this to build a clearer picture.",
                 "This information is important for the diagnosis.",
             ]
-        
-        # Use hash of question ID to get consistent but varied responses
         question_id = current_question.get("id", "default")
         hash_val = int(hashlib.md5(question_id.encode()).hexdigest(), 16)
         selected_response = responses[hash_val % len(responses)]
-        
         return selected_response
 
     def filter_treatment_suggestions(self, suggestions):
@@ -534,6 +536,9 @@ def create_app():
                 
                 kb_btn = gr.Button("Initialize Knowledge Base")
                 kb_status = gr.Textbox(label="Knowledge Base Status", interactive=False)
+                
+                status_btn = gr.Button("Get System Status")
+                system_status = gr.Textbox(label="System Information", lines=10, interactive=False)
         
         # Event handlers
         init_btn.click(
@@ -570,6 +575,11 @@ def create_app():
             outputs=kb_status
         )
         
+        status_btn.click(
+            app.get_system_status,
+            outputs=system_status
+        )
+        
         # Add disclaimer at bottom
         gr.Markdown("""
         ---
@@ -584,4 +594,9 @@ def create_app():
 
 if __name__ == "__main__":
     demo = create_app()
-    demo.launch()
+    demo.launch(
+        server_name="0.0.0.0",
+        server_port=7860,
+        share=False,
+        show_error=True
+    )

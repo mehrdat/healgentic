@@ -3,14 +3,14 @@ title: Medical Diagnosis AI
 emoji: 🏥
 colorFrom: blue
 colorTo: green
-sdk: streamlit
-sdk_version: 1.31.0
-app_file: app.py
+sdk: gradio
+sdk_version: 4.37.2
+app_file: app_gradio.py
 pinned: false
 license: mit
 ---
 
-## 🏥 Medical Diagnosis AI System
+## 🏥 Medical Diagnosis AI System (Gradio)
 
 An interactive AI system that helps with medical diagnosis through a question-and-answer interface.
 
@@ -54,7 +54,7 @@ No configuration needed - it just works! 🎉
 - **Frontend**: Built with Gradio for interactive interface
 - **AI Orchestration**: Uses LangChain for workflow management
 - **LLM Models**:
-  - Hugging Face Spaces: Microsoft DialoGPT-large (free)
+  - Hugging Face Spaces: Local Transformers (free)
   - Local: Google Gemini (requires API key)
 - **Knowledge**: Vector database for medical information storage
 - **Smart Deployment**: Automatic environment detection

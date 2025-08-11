@@ -162,3 +162,9 @@ src/knowledge/data/medical_textbooks/*.txt
 
 # Ignore specific folders or files
 data/
+
+# --- Allowlist: keep vector store indexes in repo (tracked via Git LFS) ---
+!data/
+!data/vector_store/
+!data/vector_store/index.faiss
+!data/vector_store/index.pkl
