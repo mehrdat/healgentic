@@ -22,6 +22,36 @@ def get_system():
     return MedicalDiagnosisSystem()
 
 
+# --- Patient Info banner helpers (pinned at top of chat) ---
+def _build_patient_banner(info: dict) -> str:
+    if not info:
+        return ""
+    parts = []
+    age = info.get("age")
+    gender = info.get("gender")
+    med_hist = info.get("medical_history")
+    meds = info.get("medications")
+    allergies = info.get("allergies")
+    if age not in (None, ""):
+        parts.append(f"Age: {age}")
+    if gender and gender != "Not specified":
+        parts.append(f"Gender: {gender}")
+    if med_hist:
+        parts.append(f"History: {med_hist}")
+    if meds:
+        parts.append(f"Meds: {meds}")
+    if allergies:
+        parts.append(f"Allergies: {allergies}")
+    if not parts:
+        return ""
+    header = "Patient Information"
+    return f"### 🩺 {header}\n" + "\n".join(f"- {p}" for p in parts if p)
+
+
+def _update_pinned_patient_banner():
+    st.session_state["pinned_patient_banner"] = _build_patient_banner(st.session_state.get("patient_info", {}))
+
+
 def ensure_dirs():
     base = Path(__file__).parent
     (base / "data" / "vector_store").mkdir(parents=True, exist_ok=True)
@@ -103,6 +133,7 @@ with st.sidebar:
                 "medications": meds,
                 "allergies": allergies,
             }
+            _update_pinned_patient_banner()
             st.success("Saved.")
 
     st.divider()
@@ -153,8 +184,14 @@ if "patient_info" not in st.session_state:
     st.session_state.patient_info = {}
 if "show_patient_form" not in st.session_state:
     st.session_state.show_patient_form = False
+if "pinned_patient_banner" not in st.session_state:
+    _update_pinned_patient_banner()
 
-# Render chat history
+# Render pinned banner at top, then chat history below
+banner = st.session_state.get("pinned_patient_banner", "")
+if banner:
+    with st.chat_message("assistant", avatar="🩺"):
+        st.markdown(banner)
 for msg in st.session_state.chat_history:
     with st.chat_message(msg.get("role", "assistant")):
         st.markdown(msg.get("content", ""))
@@ -266,6 +303,7 @@ if st.session_state.show_patient_form or not st.session_state.patient_info:
                 }
                 st.session_state.show_patient_form = False
                 st.success("Saved.")
+                _update_pinned_patient_banner()
                 st.rerun()
         with c2:
             if st.button("Skip for now", use_container_width=True):
