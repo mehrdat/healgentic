@@ -4,12 +4,16 @@ Description: Generates targeted questions with UI metadata for the user to help
             differentiate between the hypotheses in the differential diagnosis.
 """
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnableLambda
 try:
     from langchain.output_parsers import PydanticOutputParser
 except Exception:
     from langchain_core.output_parsers import PydanticOutputParser
 from pydantic import BaseModel, Field
 from typing import List, Optional, Any
+import json
+import re
 
 from llm.llm_config import get_llm
 # from agents.hypothesis_generation_agent import DifferentialDiagnosis  # not required at runtime
@@ -130,7 +134,58 @@ def get_clarifying_question_agent():
     llm = get_llm()
     parser = PydanticOutputParser(pydantic_object=InteractiveClarifyingQuestions)
     prompt = CLARIFYING_QUESTIONS_PROMPT.partial(format_instructions=parser.get_format_instructions())
-    agent = prompt | llm | parser
+
+    text_out = StrOutputParser()
+
+    def _safe_parse(s: str) -> InteractiveClarifyingQuestions:
+        try:
+            if not s or not str(s).strip():
+                raise ValueError("empty output")
+            # Try direct Pydantic parsing first
+            return parser.parse(s)
+        except Exception:
+            # Try to recover JSON block from text
+            try:
+                m = re.search(r"\{[\s\S]*\}$", s.strip())
+                if m:
+                    data = json.loads(m.group(0))
+                    return InteractiveClarifyingQuestions.model_validate(data)
+            except Exception:
+                pass
+            # Fallback to a minimal valid default to keep flow alive
+            default = {
+                "questions": [
+                    {
+                        "id": "q_severity",
+                        "text": "On a scale of 0-10, how severe is the main symptom?",
+                        "type": "slider",
+                        "reasoning": "Severity helps prioritize differential diagnoses.",
+                        "min": 0,
+                        "max": 10,
+                        "default": 5,
+                        "required": True
+                    },
+                    {
+                        "id": "q_timing",
+                        "text": "When did the symptoms start and are they constant or intermittent?",
+                        "type": "text",
+                        "reasoning": "Timing and pattern guide likely causes.",
+                        "required": True
+                    },
+                    {
+                        "id": "q_triggers",
+                        "text": "Do certain foods, positions, or activities trigger or worsen it?",
+                        "type": "multiselect",
+                        "options": ["After meals", "At night", "Lying down", "Exercise", "Spicy foods", "None"],
+                        "reasoning": "Triggers help distinguish between conditions.",
+                        "required": False
+                    }
+                ],
+                "more_needed": True
+            }
+            return InteractiveClarifyingQuestions.model_validate(default)
+
+    agent = prompt | llm | text_out | RunnableLambda(_safe_parse)
 
     return agent
 
