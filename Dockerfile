@@ -23,5 +23,5 @@ ENV HOME=/home/user \
     GRADIO_SERVER_PORT=7860 \
     HF_HOME=/home/user/.cache/huggingface
 
-# Default command launches the Gradio app
-CMD ["python", "app_gradio.py"]
+# Default command launches the Streamlit app
+CMD ["streamlit", "run", "app_streamlit.py", "--server.port=7860", "--server.address=0.0.0.0", "--server.headless=true"]

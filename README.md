@@ -6,13 +6,13 @@ colorTo: green
 pinned: false
 sdk: docker
 app_port: 7860
-app_file: app_gradio.py
+app_file: app_streamlit.py
 pinned: false
 license: mit
 
-## 🏥 Medical Diagnosis AI System (Docker)
+## 🏥 Medical Diagnosis AI System (Streamlit on Docker)
 
-This Space runs the app inside a Docker container. The default command launches the Gradio app (`app_gradio.py`) on port 7860.
+This Space runs a Streamlit app (`app_streamlit.py`) inside a Docker container.
 
 ## 🤖 Smart LLM Selection
 
@@ -51,7 +51,7 @@ No configuration needed - it just works! 🎉
 
 ## Technical Details
 
-- **Frontend**: Gradio interface (served on port 7860)
+- **Frontend**: Streamlit interface
 - **AI Orchestration**: Uses LangChain for workflow management
 - **LLM Models**:
   - Hugging Face Spaces: Local Transformers (free)
@@ -67,7 +67,5 @@ No configuration needed - it just works! 🎉
 docker build -t healgentic .
 docker run -it -p 7860:7860 healgentic
 ```
-
-If you prefer FastAPI health probe, you can mount `health:app` via uvicorn by changing the Docker CMD.
 
 **Remember: Always see a real doctor for health problems!**
