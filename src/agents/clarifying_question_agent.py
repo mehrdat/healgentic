@@ -185,7 +185,27 @@ def get_clarifying_question_agent():
             }
             return InteractiveClarifyingQuestions.model_validate(default)
 
-    agent = prompt | llm | text_out | RunnableLambda(_safe_parse)
+    # Primary path: try native structured output if the LLM supports it
+    agent_structured = None
+    try:
+        if hasattr(llm, "with_structured_output"):
+            agent_structured = prompt | llm.with_structured_output(InteractiveClarifyingQuestions)
+    except Exception:
+        agent_structured = None
+
+    # Fallback path: text + safe parser
+    agent_safe = prompt | llm | text_out | RunnableLambda(_safe_parse)
+
+    # Compose a small wrapper to try structured first, then fallback
+    def _invoke_with_fallback(inputs):
+        if agent_structured is not None:
+            try:
+                return agent_structured.invoke(inputs)
+            except Exception:
+                pass
+        return agent_safe.invoke(inputs)
+
+    agent = RunnableLambda(_invoke_with_fallback)
 
     return agent
 
