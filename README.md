@@ -3,12 +3,11 @@ title: Medical Diagnosis AI
 emoji: 🏥
 colorFrom: blue
 colorTo: green
-pinned: false
 sdk: docker
 app_port: 7860
-app_file: app_streamlit.py
 pinned: false
 license: mit
+---
 
 ## 🏥 Medical Diagnosis AI System (Streamlit on Docker)
 
