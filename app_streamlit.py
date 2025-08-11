@@ -76,6 +76,23 @@ def load_vector_store_from_hf(repo_id: str, subfolder=None, repo_type=None) -> s
 st.title("🏥 Medical Diagnosis AI (Streamlit)")
 st.markdown("This Space uses free Hugging Face models and a medical knowledge base.")
 
+# Optional: auto-sync vector store from Hugging Face on startup (avoids storing big files in GitHub)
+try:
+    VEC_DIR = Path(__file__).parent / "data" / "vector_store" / "medical_knowledge"
+    if not VEC_DIR.exists():
+        repo_env = os.getenv("HF_VECTOR_STORE_REPO")  # e.g. "username/medical_kb_repo"
+        repo_type_env = os.getenv("HF_REPO_TYPE") or "dataset"  # dataset | model | space
+        subfolder_env = os.getenv("HF_SUBFOLDER")  # optional
+        if repo_env:
+            with st.spinner("Syncing vector store from Hugging Face (one-time)..."):
+                path = load_vector_store_from_hf(repo_id=repo_env, subfolder=subfolder_env, repo_type=repo_type_env)
+            # Recreate system to pick up the new index
+            get_system.clear()
+            _ = get_system()
+            st.success(f"Vector store ready: {path}")
+except Exception as _e:
+    st.info("Vector store not auto-synced. You can sync manually from the sidebar if needed.")
+
 with st.sidebar:
     st.header("⚙️ Tools")
 
@@ -85,25 +102,6 @@ with st.sidebar:
         st.session_state.last_question_id = None
         st.session_state.chat_history = []
         st.rerun()
-
-    # Patient info (collapsible, not always on screen)
-    st.divider()
-    with st.expander("👤 Patient Information"):
-        pi = st.session_state.get("patient_info") or {}
-        age = st.number_input("Age", min_value=0, max_value=130, value=int(pi.get("age", 30)))
-        gender = st.selectbox("Gender", ["Not specified", "Male", "Female", "Other"], index=["Not specified", "Male", "Female", "Other"].index(pi.get("gender", "Not specified")))
-        med_hist = st.text_area("Medical History", value=pi.get("medical_history", ""), height=100)
-        meds = st.text_area("Current Medications", value=pi.get("medications", ""), height=80)
-        allergies = st.text_input("Allergies", value=pi.get("allergies", ""))
-        if st.button("Save Patient Info", use_container_width=True):
-            st.session_state.patient_info = {
-                "age": age,
-                "gender": gender,
-                "medical_history": med_hist,
-                "medications": meds,
-                "allergies": allergies,
-            }
-            st.success("Saved.")
 
     st.divider()
     with st.expander("Advanced: Sync vector store from Hugging Face"):
@@ -135,7 +133,41 @@ with st.sidebar:
     # Inline controls are rendered next to the chat when needed
 
 
-# Patient info will be used if provided
+"""Top-of-page Patient Information form (part of the main text flow)."""
+st.markdown("---")
+st.markdown("#### 👤 Patient Information (optional)")
+pi = st.session_state.get("patient_info") or {}
+col_pi1, col_pi2 = st.columns(2)
+with col_pi1:
+    age = st.number_input("Age", min_value=0, max_value=130, value=int(pi.get("age", 30)), key="pi_age_top")
+    gender = st.selectbox(
+        "Gender",
+        ["Not specified", "Male", "Female", "Other"],
+        index=["Not specified", "Male", "Female", "Other"].index(pi.get("gender", "Not specified")),
+        key="pi_gender_top",
+    )
+with col_pi2:
+    med_hist = st.text_area("Medical history", value=pi.get("medical_history", ""), height=80, key="pi_history_top")
+    meds = st.text_area("Current medications", value=pi.get("medications", ""), height=60, key="pi_meds_top")
+    allergies = st.text_input("Allergies", value=pi.get("allergies", ""), key="pi_allergies_top")
+
+col_piA, col_piB = st.columns([1, 1])
+with col_piA:
+    if st.button("Save Patient Info", use_container_width=True, key="pi_save_top"):
+        st.session_state.patient_info = {
+            "age": age,
+            "gender": gender,
+            "medical_history": med_hist,
+            "medications": meds,
+            "allergies": allergies,
+        }
+        st.success("Saved.")
+with col_piB:
+    if st.button("Clear", use_container_width=True, key="pi_clear_top"):
+        st.session_state.patient_info = {}
+        st.success("Cleared.")
+
+# Patient info dict for downstream calls
 patient = st.session_state.get("patient_info") or {}
 
 
@@ -240,37 +272,7 @@ with colB:
         st.session_state.show_patient_form = True
         st.rerun()
 
-### Patient Information (below chat)
-st.markdown("---")
-st.markdown("#### 👤 Patient Information (optional)")
-if st.session_state.show_patient_form or not st.session_state.patient_info:
-    with st.container(border=True):
-        pi = st.session_state.patient_info or {}
-        col1, col2 = st.columns(2)
-        with col1:
-            age = st.number_input("Age", min_value=0, max_value=130, value=int(pi.get("age", 30)), key="pi_age")
-            gender = st.selectbox("Gender", ["Not specified", "Male", "Female", "Other"], index=["Not specified", "Male", "Female", "Other"].index(pi.get("gender", "Not specified")), key="pi_gender")
-        with col2:
-            med_hist = st.text_area("Medical history", value=pi.get("medical_history", ""), height=80, key="pi_history")
-            meds = st.text_area("Current medications", value=pi.get("medications", ""), height=60, key="pi_meds")
-            allergies = st.text_input("Allergies", value=pi.get("allergies", ""), key="pi_allergies")
-        c1, c2 = st.columns([1, 1])
-        with c1:
-            if st.button("Save", use_container_width=True):
-                st.session_state.patient_info = {
-                    "age": age,
-                    "gender": gender,
-                    "medical_history": med_hist,
-                    "medications": meds,
-                    "allergies": allergies,
-                }
-                st.session_state.show_patient_form = False
-                st.success("Saved.")
-                st.rerun()
-        with c2:
-            if st.button("Skip for now", use_container_width=True):
-                st.session_state.show_patient_form = False
-                st.rerun()
+### Patient Information (moved to top) — removed bottom duplicate form
 
 # Inline structured controls for the current question (context-aware UI)
 state_now = st.session_state.get("diag_state")

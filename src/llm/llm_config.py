@@ -121,14 +121,21 @@ def _wrap_llm_for_messages(llm):
 
 
 def get_llm():
-    """Initialize the LLM based on environment."""
-    if is_huggingface_space():
-        print("[LLM] Spaces detected: using local transformers model")
-        base = _install_structured_output(get_local_pipeline_llm())
-        return _wrap_llm_for_messages(base)
-    else:
-        print("[LLM] Local detected: using Google Gemini (if available)")
-        return get_google_llm()
+    """Initialize the LLM. Prefer free Hugging Face transformers by default.
+
+    Behavior:
+    - If LLM_PROVIDER=gemini (and GOOGLE_API_KEY present), use Gemini.
+    - Otherwise, use local transformers pipeline (CPU-friendly for Streamlit Cloud).
+    """
+    provider = (os.getenv("LLM_PROVIDER") or "hf").strip().lower()
+    if provider == "gemini":
+        try:
+            return get_google_llm()
+        except Exception as e:
+            print("[LLM] Gemini selection failed:", e, "— falling back to local HF pipeline")
+    # Default: local HF transformers
+    base = _install_structured_output(get_local_pipeline_llm())
+    return _wrap_llm_for_messages(base)
 
 
 def get_google_llm():
@@ -175,6 +182,7 @@ def get_local_pipeline_llm():
     except Exception:
         from langchain.llms import HuggingFacePipeline  # type: ignore
 
+    # Default to a small, CPU-friendly model. Override with HF_LOCAL_MODEL.
     model_name = os.getenv("HF_LOCAL_MODEL", "Qwen/Qwen2.5-0.5B-Instruct")
     task = "text2text-generation" if any(k in model_name.lower() for k in ("t5", "flan")) else "text-generation"
     try:

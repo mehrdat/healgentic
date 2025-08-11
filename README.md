@@ -62,3 +62,33 @@ No configuration needed - it just works! 🎉
 ---
 
 **Remember: Always see a real doctor for health problems!**
+
+## 🚀 Deploy on Streamlit Cloud (keep big files off GitHub)
+
+You can deploy this app from GitHub without pushing large vector-store files. The app will download its FAISS index at runtime from a Hugging Face repo.
+
+1. Prepare your vector store on Hugging Face
+
+  - Create a Dataset repo (recommended), e.g. `username/medical_kb_repo`
+  - Upload `index.faiss` and `index.pkl` either in the repo root or under `medical_knowledge/`
+  - For private repos, create an access token in your HF account
+
+2. Set Streamlit Cloud environment variables
+
+  - HF_VECTOR_STORE_REPO = `username/medical_kb_repo`
+  - HF_REPO_TYPE = `dataset` (or `model`/`space` if that’s where you stored it)
+  - HF_SUBFOLDER = `medical_knowledge` (only if you used that subfolder)
+  - HUGGING_FACE_HUB_TOKEN = your token (only required for private repos)
+  - LLM_PROVIDER = `hf` (default; uses local transformers)
+  - HF_LOCAL_MODEL = `Qwen/Qwen2.5-0.5B-Instruct` (or another small CPU model, e.g., `google/flan-t5-base`)
+
+3. Deploy the app
+
+  - Create a new Streamlit Cloud app and point it to your GitHub repository
+  - The app will auto-download the vector store on first run and cache it in `data/vector_store/medical_knowledge`
+
+Notes
+
+- The repository’s `.gitignore` excludes big files (FAISS, PKL); no Git LFS required
+- You can manually sync from the sidebar if you prefer not to auto-sync on startup
+- If you host files elsewhere (S3/GCS/public URL), the app can be adapted to download from there
