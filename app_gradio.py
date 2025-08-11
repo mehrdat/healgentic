@@ -199,13 +199,13 @@ class GradioMedicalApp:
     def start_diagnosis(self, symptoms, history):
         """Start the diagnosis process"""
         if not self.system:
-            return history + [["Error", "Please initialize the system first"]], "", gr.update(visible=False), "", gr.update(visible=False), gr.update(visible=False)
+            return history + [["Error", "Please initialize the system first"]], "", gr.update(visible=False), ""
         
         if not symptoms.strip():
-            return history + [["Error", "Please describe your symptoms"]], "", gr.update(visible=False), "", gr.update(visible=False), gr.update(visible=False)
+            return history + [["Error", "Please describe your symptoms"]], "", gr.update(visible=False), ""
         
         if not self.patient_info:
-            return history + [["Error", "Please fill out patient information first"]], "", gr.update(visible=False), "", gr.update(visible=False), gr.update(visible=False)
+            return history + [["Error", "Please fill out patient information first"]], "", gr.update(visible=False), ""
         
         # Add user message to history
         history.append([symptoms, None])
@@ -227,7 +227,7 @@ class GradioMedicalApp:
                 # Show the question interface
                 question_text = self.current_question.get("text", "")
                 
-                return history, "", self.create_question_interface(self.current_question), question_text, gr.update(visible=True), gr.update(visible=True)
+                return history, "", self.create_question_interface(self.current_question), question_text
                 
             elif result["status"] == "diagnosis_complete":
                 # Format diagnosis results
@@ -239,14 +239,14 @@ class GradioMedicalApp:
                 self.diagnosis_state = None
                 self.diagnosis_started = False
                 
-                return history, "", gr.update(visible=False), "", gr.update(visible=False), gr.update(visible=False)
+                return history, "", gr.update(visible=False), ""
         
         except Exception as e:
             error_msg = f"❌ Error starting diagnosis: {str(e)}"
             history.append([None, error_msg])
-            return history, "", gr.update(visible=False), "", gr.update(visible=False), gr.update(visible=False)
+            return history, "", gr.update(visible=False), ""
         
-        return history, "", gr.update(visible=False), "", gr.update(visible=False), gr.update(visible=False)
+        return history, "", gr.update(visible=False), ""
 
     def create_question_interface(self, question):
         """Create the appropriate interface for the question type"""
@@ -277,10 +277,10 @@ class GradioMedicalApp:
     def answer_question(self, answer, history):
         """Process the answer to current question"""
         if not self.current_question or not self.system:
-            return history, gr.update(visible=False), "", gr.update(visible=False), gr.update(visible=False)
+            return history, gr.update(visible=False), ""
         
         if answer is None or (isinstance(answer, str) and not answer.strip()):
-            return history + [[None, "Please provide an answer before submitting."]], gr.update(visible=False), "", gr.update(visible=False), gr.update(visible=False)
+            return history + [[None, "Please provide an answer before submitting."]], gr.update(visible=False), ""
         
         try:
             # Process the answer
@@ -308,7 +308,7 @@ class GradioMedicalApp:
                 
                 # Show next question
                 question_text = self.current_question.get("text", "")
-                return history, self.create_question_interface(self.current_question), question_text, gr.update(visible=True), gr.update(visible=True)
+                return history, self.create_question_interface(self.current_question), question_text
                 
             elif result["status"] == "diagnosis_complete":
                 # Diagnosis complete
@@ -320,19 +320,19 @@ class GradioMedicalApp:
                 diagnosis_text = self.format_diagnosis_results(result)
                 history.append([None, diagnosis_text])
                 
-                return history, gr.update(visible=False), "", gr.update(visible=False), gr.update(visible=False)
+                return history, gr.update(visible=False), ""
         
         except Exception as e:
             error_msg = f"❌ Error processing answer: {str(e)}"
             history.append([None, error_msg])
-            return history, gr.update(visible=False), "", gr.update(visible=False), gr.update(visible=False)
+            return history, gr.update(visible=False), ""
         
-        return history, gr.update(visible=False), "", gr.update(visible=False), gr.update(visible=False)
+        return history, gr.update(visible=False), ""
 
     def skip_question(self, history):
         """Skip the current question"""
         if not self.current_question or not self.system:
-            return history, gr.update(visible=False), "", gr.update(visible=False), gr.update(visible=False)
+            return history, gr.update(visible=False), ""
         
         try:
             question_id = self.current_question.get("id", "")
@@ -358,7 +358,7 @@ class GradioMedicalApp:
                 
                 # Show next question
                 question_text = self.current_question.get("text", "")
-                return history, self.create_question_interface(self.current_question), question_text, gr.update(visible=True), gr.update(visible=True)
+                return history, self.create_question_interface(self.current_question), question_text
                 
             elif result["status"] == "diagnosis_complete":
                 # Diagnosis complete
@@ -370,14 +370,14 @@ class GradioMedicalApp:
                 diagnosis_text = self.format_diagnosis_results(result)
                 history.append([None, diagnosis_text])
                 
-                return history, gr.update(visible=False), "", gr.update(visible=False), gr.update(visible=False)
+                return history, gr.update(visible=False), ""
         
         except Exception as e:
             error_msg = f"❌ Error skipping question: {str(e)}"
             history.append([None, error_msg])
-            return history, gr.update(visible=False), "", gr.update(visible=False), gr.update(visible=False)
+            return history, gr.update(visible=False), ""
         
-        return history, gr.update(visible=False), "", gr.update(visible=False), gr.update(visible=False)
+        return history, gr.update(visible=False), ""
 
     def format_diagnosis_results(self, result):
         """Format the diagnosis results for display"""
@@ -481,19 +481,16 @@ def create_app():
                     show_label=True
                 )
                 
-                # Question interface (hidden by default)
-                with gr.Group(visible=False) as question_group:
-                    question_text = gr.Markdown("", visible=True)
-                    
-                    # Dynamic question input (will be updated based on question type)
-                    question_input = gr.Textbox(
-                        label="Your answer",
-                        visible=False
-                    )
-                    
-                    with gr.Row():
-                        submit_btn = gr.Button("Submit Answer", variant="primary")
-                        skip_btn = gr.Button("Skip Question", variant="secondary")
+                # Question area
+                question_text = gr.Markdown("", visible=True)
+                # Dynamic question input (will be updated based on question type)
+                question_input = gr.Textbox(
+                    label="Your answer",
+                    visible=False
+                )
+                with gr.Row():
+                    submit_btn = gr.Button("Submit Answer", variant="primary")
+                    skip_btn = gr.Button("Skip Question", variant="secondary")
                 
                 # Symptoms input
                 symptoms_input = gr.Textbox(
@@ -555,19 +552,19 @@ def create_app():
         start_btn.click(
             app.start_diagnosis,
             inputs=[symptoms_input, chatbot],
-            outputs=[chatbot, symptoms_input, question_input, question_text, question_group, submit_btn]
+            outputs=[chatbot, symptoms_input, question_input, question_text]
         )
         
         submit_btn.click(
             app.answer_question,
             inputs=[question_input, chatbot],
-            outputs=[chatbot, question_input, question_text, question_group, submit_btn]
+            outputs=[chatbot, question_input, question_text]
         )
         
         skip_btn.click(
             app.skip_question,
             inputs=[chatbot],
-            outputs=[chatbot, question_input, question_text, question_group, submit_btn]
+            outputs=[chatbot, question_input, question_text]
         )
         
         kb_btn.click(
@@ -597,6 +594,6 @@ if __name__ == "__main__":
     demo.launch(
         server_name="0.0.0.0",
         server_port=7860,
-        share=False,
+        share=True,
         show_error=True
     )
