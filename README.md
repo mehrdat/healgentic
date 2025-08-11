@@ -3,16 +3,16 @@ title: Medical Diagnosis AI
 emoji: 🏥
 colorFrom: blue
 colorTo: green
-sdk: gradio
-sdk_version: 4.37.2
+pinned: false
+sdk: docker
+app_port: 7860
 app_file: app_gradio.py
 pinned: false
 license: mit
----
 
-## 🏥 Medical Diagnosis AI System (Gradio)
+## 🏥 Medical Diagnosis AI System (Docker)
 
-An interactive AI system that helps with medical diagnosis through a question-and-answer interface.
+This Space runs the app inside a Docker container. The default command launches the Gradio app (`app_gradio.py`) on port 7860.
 
 ## 🤖 Smart LLM Selection
 
@@ -51,7 +51,7 @@ No configuration needed - it just works! 🎉
 
 ## Technical Details
 
-- **Frontend**: Built with Gradio for interactive interface
+- **Frontend**: Gradio interface (served on port 7860)
 - **AI Orchestration**: Uses LangChain for workflow management
 - **LLM Models**:
   - Hugging Face Spaces: Local Transformers (free)
@@ -60,5 +60,14 @@ No configuration needed - it just works! 🎉
 - **Smart Deployment**: Automatic environment detection
 
 ---
+
+### Run locally with Docker (optional)
+
+```bash
+docker build -t healgentic .
+docker run -it -p 7860:7860 healgentic
+```
+
+If you prefer FastAPI health probe, you can mount `health:app` via uvicorn by changing the Docker CMD.
 
 **Remember: Always see a real doctor for health problems!**
