@@ -103,8 +103,51 @@ def load_vector_store_from_hf(repo_id: str, subfolder=None, repo_type=None) -> s
     return str(dst)
 
 
-st.title("🏥 Medical Diagnosis AI (Streamlit)")
-st.markdown("This Space uses free Hugging Face models and a medical knowledge base.")
+st.title("🏥 HealGentic ")
+st.markdown("This Space uses free Hugging Face models and a medical knowledge base from over 100 medical textbooks.")
+
+# ================== Patient Information (Top Section) ==================
+if "patient_info" not in st.session_state:
+    st.session_state.patient_info = {}
+
+st.markdown("### 👤 Patient Information (optional)")
+pi_top = st.session_state.patient_info or {}
+with st.container(border=True):
+    col_top_1, col_top_2 = st.columns(2)
+    with col_top_1:
+        top_age = st.number_input("Age", min_value=0, max_value=130, value=int(pi_top.get("age", 30)), key="top_age")
+        top_gender = st.selectbox(
+            "Gender",
+            ["Not specified", "Male", "Female", "Other"],
+            index=["Not specified", "Male", "Female", "Other"].index(pi_top.get("gender", "Not specified")),
+            key="top_gender",
+        )
+    with col_top_2:
+        top_med_hist = st.text_area("Medical history", value=pi_top.get("medical_history", ""), height=80, key="top_med_hist")
+        top_meds = st.text_area("Current medications", value=pi_top.get("medications", ""), height=60, key="top_meds")
+        top_allergies = st.text_input("Allergies", value=pi_top.get("allergies", ""), key="top_allergies")
+    col_save, col_clear = st.columns([1, 1])
+    with col_save:
+        if st.button("Save Patient Info", key="save_patient_top", use_container_width=True):
+            st.session_state.patient_info = {
+                "age": top_age,
+                "gender": top_gender,
+                "medical_history": top_med_hist,
+                "medications": top_meds,
+                "allergies": top_allergies,
+            }
+            _update_pinned_patient_banner()
+            st.success("Saved.")
+            st.rerun()
+    with col_clear:
+        if st.button("Clear", key="clear_patient_top", use_container_width=True):
+            st.session_state.patient_info = {}
+            _update_pinned_patient_banner()
+            st.info("Cleared.")
+            st.rerun()
+
+st.markdown("---")
+# ======================================================================
 
 with st.sidebar:
     st.header("⚙️ Tools")
@@ -180,10 +223,8 @@ if "last_question_id" not in st.session_state:
     st.session_state.last_question_id = None
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []  # list of {role: "user"|"assistant", content: str}
-if "patient_info" not in st.session_state:
+if "patient_info" not in st.session_state:  # ensured above, kept for safety
     st.session_state.patient_info = {}
-if "show_patient_form" not in st.session_state:
-    st.session_state.show_patient_form = False
 if "pinned_patient_banner" not in st.session_state:
     _update_pinned_patient_banner()
 
@@ -269,46 +310,9 @@ if user_input:
             append_message("assistant", "Session complete. Click Reset Session to start over, or type new symptoms to begin a new session.")
 
 # Controls
-colA, colB = st.columns([1, 1])
-with colA:
-    st.caption("Use the chat to converse with the AI. It will ask follow-up questions.")
-with colB:
-    if st.button("Edit patient info", use_container_width=True):
-        st.session_state.show_patient_form = True
-        st.rerun()
+st.caption("Use the chat to converse with the AI. It will ask follow-up questions.")
 
-### Patient Information (below chat)
-st.markdown("---")
-st.markdown("#### 👤 Patient Information (optional)")
-if st.session_state.show_patient_form or not st.session_state.patient_info:
-    with st.container(border=True):
-        pi = st.session_state.patient_info or {}
-        col1, col2 = st.columns(2)
-        with col1:
-            age = st.number_input("Age", min_value=0, max_value=130, value=int(pi.get("age", 30)), key="pi_age")
-            gender = st.selectbox("Gender", ["Not specified", "Male", "Female", "Other"], index=["Not specified", "Male", "Female", "Other"].index(pi.get("gender", "Not specified")), key="pi_gender")
-        with col2:
-            med_hist = st.text_area("Medical history", value=pi.get("medical_history", ""), height=80, key="pi_history")
-            meds = st.text_area("Current medications", value=pi.get("medications", ""), height=60, key="pi_meds")
-            allergies = st.text_input("Allergies", value=pi.get("allergies", ""), key="pi_allergies")
-        c1, c2 = st.columns([1, 1])
-        with c1:
-            if st.button("Save", use_container_width=True):
-                st.session_state.patient_info = {
-                    "age": age,
-                    "gender": gender,
-                    "medical_history": med_hist,
-                    "medications": meds,
-                    "allergies": allergies,
-                }
-                st.session_state.show_patient_form = False
-                st.success("Saved.")
-                _update_pinned_patient_banner()
-                st.rerun()
-        with c2:
-            if st.button("Skip for now", use_container_width=True):
-                st.session_state.show_patient_form = False
-                st.rerun()
+# (Removed old bottom patient info form to avoid duplication)
 
 # Inline structured controls for the current question (context-aware UI)
 state_now = st.session_state.get("diag_state")
