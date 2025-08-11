@@ -14,9 +14,15 @@ def setup_logging():
     - Configures a logger to write to a timestamped file in the 'logs' directory.
     - Returns the configured logger instance.
     """
-    # Create logs directory
-    log_dir = "logs"
-    os.makedirs(log_dir, exist_ok=True)
+    # Prefer LOG_DIR env var; fallback to ./logs; if permission denied, use /tmp
+    preferred = os.getenv("LOG_DIR") or "logs"
+    log_dir = preferred
+    try:
+        os.makedirs(log_dir, exist_ok=True)
+    except PermissionError:
+        # Fall back to a writable temp directory
+        log_dir = "/tmp/healgentic/logs"
+        os.makedirs(log_dir, exist_ok=True)
     
     # Create a unique log file name with a timestamp
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -35,7 +41,7 @@ def setup_logging():
         )
         file_handler.setFormatter(file_formatter)
         logger.addHandler(file_handler)
-        
+
         # Console handler
         console_handler = logging.StreamHandler()
         console_formatter = logging.Formatter('%(levelname)s: %(message)s')
