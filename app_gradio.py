@@ -250,29 +250,15 @@ class GradioMedicalApp:
 
     def create_question_interface(self, question):
         """Create the appropriate interface for the question type"""
-        question_type = question.get("type", "text")
-        
-        if question_type == "slider":
-            min_val = question.get("min", 0)
-            max_val = question.get("max", 10)
-            default_val = question.get("default", min_val)
-            return gr.update(visible=True, label=f"Scale (0-{max_val})", minimum=min_val, maximum=max_val, value=default_val)
-        
-        elif question_type in ["select", "radio"]:
-            options = question.get("options", ["Yes", "No"])
-            return gr.update(visible=True, choices=options, value=options[0] if options else None, label="Select one")
-        
-        elif question_type == "multiselect":
-            options = question.get("options", [])
-            return gr.update(visible=True, choices=options, value=[], label="Select all that apply")
-        
-        elif question_type == "number":
-            min_val = question.get("min", 0)
-            max_val = question.get("max", 100)
-            return gr.update(visible=True, label="Enter number", minimum=min_val, maximum=max_val, value=min_val)
-        
-        else:  # text input
-            return gr.update(visible=True, label="Enter your answer", value="")
+        # Always use a Textbox-compatible update to avoid schema mismatches
+    # Keep label generic; show hint via placeholder
+        placeholder = "Type your answer here"
+        if question.get("type") in ("select", "radio", "multiselect"):
+            opts = question.get("options", [])
+            if opts:
+                # Append options hint into the input label for clarity
+                placeholder = f"Options: {', '.join(map(str, opts))}"
+        return gr.update(visible=True, label="Your answer", value="", placeholder=placeholder)
 
     def answer_question(self, answer, history):
         """Process the answer to current question"""
