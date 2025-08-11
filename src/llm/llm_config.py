@@ -8,6 +8,7 @@ so older agent code will not crash.
 """
 
 import os
+import typing as _t
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -120,6 +121,19 @@ def _wrap_llm_for_messages(llm):
     return wrapper
 
 
+def _get_from_env_or_streamlit(name: str, default: _t.Optional[str] = None) -> _t.Optional[str]:
+    val = os.getenv(name)
+    if val is not None:
+        return val
+    try:
+        import streamlit as st  # type: ignore
+        if name in st.secrets:
+            return st.secrets.get(name)  # type: ignore[attr-defined]
+    except Exception:
+        pass
+    return default
+
+
 def get_llm():
     """Initialize the LLM. Prefer free Hugging Face transformers by default.
 
@@ -127,7 +141,7 @@ def get_llm():
     - If LLM_PROVIDER=gemini (and GOOGLE_API_KEY present), use Gemini.
     - Otherwise, use local transformers pipeline (CPU-friendly for Streamlit Cloud).
     """
-    provider = (os.getenv("LLM_PROVIDER") or "hf").strip().lower()
+    provider = (_get_from_env_or_streamlit("LLM_PROVIDER") or "hf").strip().lower()
     if provider == "gemini":
         try:
             return get_google_llm()
@@ -183,7 +197,7 @@ def get_local_pipeline_llm():
         from langchain.llms import HuggingFacePipeline  # type: ignore
 
     # Default to a small, CPU-friendly model. Override with HF_LOCAL_MODEL.
-    model_name = os.getenv("HF_LOCAL_MODEL", "Qwen/Qwen2.5-0.5B-Instruct")
+    model_name = _get_from_env_or_streamlit("HF_LOCAL_MODEL", "Qwen/Qwen2.5-0.5B-Instruct")
     task = "text2text-generation" if any(k in model_name.lower() for k in ("t5", "flan")) else "text-generation"
     try:
         pipe = pipeline(task, model=model_name, max_new_tokens=384, temperature=0.1, do_sample=False, repetition_penalty=1.05)

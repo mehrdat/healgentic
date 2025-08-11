@@ -16,6 +16,21 @@ sys.path.insert(0, str(Path(__file__).parent))
 st.set_page_config(page_title="Medical Diagnosis AI", page_icon="🏥", layout="wide")
 
 
+def _env_or_secret(name: str, default: str | None = None) -> str | None:
+    """Read a config value from environment variables or Streamlit secrets.
+    Environment has priority; falls back to st.secrets if present.
+    """
+    val = os.getenv(name)
+    if val is not None:
+        return val
+    try:
+        if name in st.secrets:
+            return st.secrets.get(name)  # type: ignore[attr-defined]
+    except Exception:
+        pass
+    return default
+
+
 @st.cache_resource(show_spinner=False)
 def get_system():
     from src.main import MedicalDiagnosisSystem
@@ -41,10 +56,10 @@ def load_vector_store_from_hf(repo_id: str, subfolder=None, repo_type=None) -> s
 
     # Token (optional for public repos)
     token = (
-        os.getenv("HUGGING_FACE_HUB_TOKEN")
-        or os.getenv("HUGGINGFACEHUB_API_TOKEN")
-        or os.getenv("HF_TOKEN")
-        or os.getenv("HF_API_HEY")  # custom secret name
+        _env_or_secret("HUGGING_FACE_HUB_TOKEN")
+        or _env_or_secret("HUGGINGFACEHUB_API_TOKEN")
+        or _env_or_secret("HF_TOKEN")
+        or _env_or_secret("HF_API_HEY")  # custom secret name
     )
     if token:
         try:
@@ -80,9 +95,9 @@ st.markdown("This Space uses free Hugging Face models and a medical knowledge ba
 try:
     VEC_DIR = Path(__file__).parent / "data" / "vector_store" / "medical_knowledge"
     if not VEC_DIR.exists():
-        repo_env = os.getenv("HF_VECTOR_STORE_REPO")  # e.g. "username/medical_kb_repo"
-        repo_type_env = os.getenv("HF_REPO_TYPE") or "dataset"  # dataset | model | space
-        subfolder_env = os.getenv("HF_SUBFOLDER")  # optional
+        repo_env = _env_or_secret("HF_VECTOR_STORE_REPO")  # e.g. "username/medical_kb_repo"
+        repo_type_env = _env_or_secret("HF_REPO_TYPE") or "dataset"  # dataset | model | space
+        subfolder_env = _env_or_secret("HF_SUBFOLDER")  # optional
         if repo_env:
             with st.spinner("Syncing vector store from Hugging Face (one-time)..."):
                 path = load_vector_store_from_hf(repo_id=repo_env, subfolder=subfolder_env, repo_type=repo_type_env)
