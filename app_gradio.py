@@ -59,6 +59,22 @@ class GradioMedicalApp:
         self.chat_history = []  # list[{"role","content"}]
         self.patient_info = {}
 
+    # Helpers to manage Chatbot value as list of (user, assistant) pairs
+    def _add_user(self, chat, text):
+        chat = chat or []
+        chat.append((text, ""))
+        return chat
+
+    def _add_assistant(self, chat, text):
+        chat = chat or []
+        if chat and (chat[-1][1] is None or chat[-1][1] == ""):
+            # fill the assistant reply for the last user turn
+            chat[-1] = (chat[-1][0], text)
+        else:
+            # standalone assistant message
+            chat.append(("", text))
+        return chat
+
     def initialize_system(self):
         try:
             if self.system is None:
@@ -167,23 +183,19 @@ class GradioMedicalApp:
     def start_diagnosis(self, symptoms, messages):
         """Start the diagnosis process"""
         if not self.system:
-            messages = messages or []
-            messages.append({"role": "assistant", "content": "Please initialize the system first"})
+            messages = self._add_assistant(messages, "Please initialize the system first")
             return gr.update(value=messages), "", gr.update(visible=False), ""
 
         if not symptoms.strip():
-            messages = messages or []
-            messages.append({"role": "assistant", "content": "Please describe your symptoms"})
+            messages = self._add_assistant(messages, "Please describe your symptoms")
             return gr.update(value=messages), "", gr.update(visible=False), ""
 
         if not self.patient_info:
-            messages = messages or []
-            messages.append({"role": "assistant", "content": "Please fill out patient information first"})
+            messages = self._add_assistant(messages, "Please fill out patient information first")
             return gr.update(value=messages), "", gr.update(visible=False), ""
 
         # Add user message
-        messages = messages or []
-        messages.append({"role": "user", "content": symptoms})
+        messages = self._add_user(messages, symptoms)
 
         try:
             # Start interactive diagnosis
@@ -196,20 +208,20 @@ class GradioMedicalApp:
                 self.diagnosis_started = True
 
                 # Add assistant response
-                messages.append({
-                    "role": "assistant",
-                    "content": (
+                messages = self._add_assistant(
+                    messages,
+                    (
                         "I've analyzed your symptoms. To provide an accurate diagnosis, "
                         "I need to ask you some specific questions."
                     ),
-                })
+                )
 
                 question_text = (self.current_question or {}).get("text", "")
                 return gr.update(value=messages), "", self.create_question_interface(self.current_question), question_text
 
             elif status == "diagnosis_complete":
                 diagnosis_text = self.format_diagnosis_results(result)
-                messages.append({"role": "assistant", "content": diagnosis_text})
+                messages = self._add_assistant(messages, diagnosis_text)
 
                 # Reset state
                 self.current_question = None
@@ -220,7 +232,7 @@ class GradioMedicalApp:
 
         except Exception as e:
             error_msg = f"❌ Error starting diagnosis: {str(e)}"
-            messages.append({"role": "assistant", "content": error_msg})
+            messages = self._add_assistant(messages, error_msg)
             return gr.update(value=messages), "", gr.update(visible=False), ""
 
         # Fallback
@@ -242,8 +254,7 @@ class GradioMedicalApp:
             return gr.update(), gr.update(visible=False), ""
 
         if answer is None or (isinstance(answer, str) and not answer.strip()):
-            messages = messages or []
-            messages.append({"role": "assistant", "content": "Please provide an answer before submitting."})
+            messages = self._add_assistant(messages, "Please provide an answer before submitting.")
             return gr.update(value=messages), gr.update(visible=False), ""
 
         try:
@@ -253,8 +264,7 @@ class GradioMedicalApp:
 
             # Add answer to chat history
             question_text = (self.current_question or {}).get("text", "")
-            messages = messages or []
-            messages.append({"role": "user", "content": f"{question_text}: {answer}"})
+            messages = self._add_user(messages, f"{question_text}: {answer}")
 
             status = result.get("status")
             if status == "question_pending":
@@ -264,7 +274,7 @@ class GradioMedicalApp:
 
                 # Generate contextual response
                 contextual_message = self.generate_contextual_response(self.diagnosis_state, self.current_question)
-                messages.append({"role": "assistant", "content": contextual_message})
+                messages = self._add_assistant(messages, contextual_message)
 
                 # Show next question
                 question_text = (self.current_question or {}).get("text", "")
@@ -278,14 +288,13 @@ class GradioMedicalApp:
 
                 # Display comprehensive diagnosis results
                 diagnosis_text = self.format_diagnosis_results(result)
-                messages.append({"role": "assistant", "content": diagnosis_text})
+                messages = self._add_assistant(messages, diagnosis_text)
 
                 return gr.update(value=messages), gr.update(visible=False), ""
 
         except Exception as e:
             error_msg = f"❌ Error processing answer: {str(e)}"
-            messages = messages or []
-            messages.append({"role": "assistant", "content": error_msg})
+            messages = self._add_assistant(messages, error_msg)
             return gr.update(value=messages), gr.update(visible=False), ""
 
         # Fallback
@@ -302,8 +311,7 @@ class GradioMedicalApp:
 
             # Add skip to chat history
             question_text = (self.current_question or {}).get("text", "")
-            messages = messages or []
-            messages.append({"role": "user", "content": f"{question_text}: Skipped"})
+            messages = self._add_user(messages, f"{question_text}: Skipped")
 
             status = result.get("status")
             if status == "question_pending":
@@ -311,7 +319,7 @@ class GradioMedicalApp:
                 self.diagnosis_state = result.get("state")
 
                 contextual_message = self.generate_contextual_response(self.diagnosis_state, self.current_question)
-                messages.append({"role": "assistant", "content": f"That's okay. {contextual_message}"})
+                messages = self._add_assistant(messages, f"That's okay. {contextual_message}")
 
                 question_text = (self.current_question or {}).get("text", "")
                 return gr.update(value=messages), self.create_question_interface(self.current_question), question_text
@@ -322,14 +330,13 @@ class GradioMedicalApp:
                 self.diagnosis_started = False
 
                 diagnosis_text = self.format_diagnosis_results(result)
-                messages.append({"role": "assistant", "content": diagnosis_text})
+                messages = self._add_assistant(messages, diagnosis_text)
 
                 return gr.update(value=messages), gr.update(visible=False), ""
 
         except Exception as e:
             error_msg = f"❌ Error skipping question: {str(e)}"
-            messages = messages or []
-            messages.append({"role": "assistant", "content": error_msg})
+            messages = self._add_assistant(messages, error_msg)
             return gr.update(value=messages), gr.update(visible=False), ""
 
         # Fallback
@@ -434,8 +441,7 @@ def create_app():
                 chatbot = gr.Chatbot(
                     label="Medical Consultation",
                     height=400,
-                    show_label=True,
-                    type="messages"
+                    show_label=True
                 )
                 
                 # Question area
